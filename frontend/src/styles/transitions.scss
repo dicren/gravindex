@@ -1,0 +1,54 @@
+.component-fade-enter-active, .component-fade-leave-active {
+  transition: opacity .3s ease;
+}
+.component-fade-enter, .component-fade-leave-to {
+  opacity: 0;
+}
+
+.component-fade-enter-to, .component-fade-leave {
+  opacity: 1;
+}
+
+
+.load-enter-active, .load-leave-active {
+  transition: opacity .3s ease;
+}
+.load-enter, .load-leave-to {
+  opacity: 0;
+}
+
+.load-enter-to, .load-leave {
+  opacity: 1;
+}
+
+
+/*
+
+.transition-item {
+  transition: all 1s;
+}
+.list-leave-active {
+  display: none;
+}
+.list-enter {
+  opacity: 0;
+}
+*/
+
+.transition-item {
+  display: inline-block;
+
+  &.list-enter-active,
+  &.list-leave-active {
+    transition: opacity .3s;
+  }
+
+  &.list-enter-active {
+    transition-delay: .5s;
+  }
+
+  &.list-enter,
+  &.list-leave-to {
+    opacity: 0;
+  }
+}

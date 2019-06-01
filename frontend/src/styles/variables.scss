@@ -1,0 +1,21 @@
+@import "bulma-personalize/colors";
+
+@mixin betterScroll($size) {
+
+  &::-webkit-scrollbar-track
+  {
+    background-color: #F5F5F5;
+  }
+
+  &::-webkit-scrollbar
+  {
+    width: $size;
+    height: $size;
+    background-color: #F5F5F5;
+  }
+
+  &::-webkit-scrollbar-thumb
+  {
+    background-color: rgb(182, 182, 182);
+  }
+}

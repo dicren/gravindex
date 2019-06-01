@@ -1,0 +1,212 @@
+@import "./variables.scss";
+@import "./bulma.scss";
+@import "./transitions.scss";
+@import "./glitchEffect.scss";
+@import "~@fortawesome/fontawesome-free/css/all.min.css";
+@import "~nouislider/distribute/nouislider.css";
+@import "noUiSlider.scss";
+@import "~bulma/sass/utilities/mixins";
+
+
+html {
+  scroll-behavior: smooth;
+}
+
+
+//BOTONES
+.button{
+  &.is-icon {
+    --size: 0.75rem;
+    padding-left: var(--size);
+    padding-right: var(--size);
+
+    &.is-small {
+      --size: 0.563rem;
+      padding-left: var(--size);
+      padding-right: var(--size);
+    }
+  }
+}
+
+/* fadein fadeout icon */
+.icon.animated{
+  &.grow{
+    transition: transform 500ms ease;
+    transform: scale(0,0);
+    &.visible{
+      transform: scale(1,1);
+    }
+  }
+}
+
+.space-between{
+  display: flex;
+  justify-content: space-between;
+}
+
+.button-animated{
+  transition: background-color ease 400ms;
+  &.is-icon{
+    width: 2.25rem;
+    position: relative;
+    .icon{
+      position: absolute;
+      left: .35rem;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
+  }
+}
+
+
+//CARD BOXES, Gravina Style
+.card .title {
+  color: $red-gravinero;
+  text-shadow: none;
+  font-weight: 400;
+}
+
+.tag:not(.is-success):not(.is-warning):not(.is-danger):not(.is-info):not(.is-primary){
+  background-color: $red-gravinero !important;
+  color: #fff !important;
+  text-shadow: none;
+  &:hover {
+    background-color: darken($red-gravinero, 5) !important;
+  }
+}
+
+.tag:hover{
+  text-decoration: none !important;
+}
+.tag.tag-add{
+  font-size: 0.75rem;
+  padding: 0.4rem;
+}
+
+.columns .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+}
+
+.card-footer.icon-buttons {
+  justify-content: space-between;
+  padding: 0.5rem 0.5rem 0.3rem;
+  a {
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+    span {
+      padding: 0.2rem;
+    }
+  }
+}
+
+
+//INPUTS
+.control-graviner {
+  .input, select, .tagsinput input {
+    background-color: #1e1d1e;
+    border-color: #5a5a5a;
+    border-radius: 4px;
+    color: #b6b6b6;
+    text-shadow: 1px 1px 1px #000;
+
+    &:focus {
+      box-shadow: 0 0 0 0.125em rgba(132, 132, 132, 0.25);
+    }
+
+    &::placeholder {
+      color: #b6b6b6;
+    }
+  }
+
+  .select::after{
+    border-color: $brown-gravinero !important;
+  }
+
+  .icon, select::after {
+    color: $brown-gravinero !important;
+  }
+}
+
+
+//NOTIFICATIONS
+$notification-rows: 3;
+$notification-margin: 4rem;
+.app-notification-container{
+  position: fixed;
+  width: calc(100% - 1.50rem - (#{$notification-margin} * 2));
+  z-index: 100;
+  bottom: 2.5rem;
+  margin-left: $notification-margin;
+  .notification{
+    transition: all 200ms;
+    max-height: calc((1.5rem * #{$notification-rows}) + (1.25rem * 2));
+    display: flex;
+    flex-flow: column;
+    span{
+      height: 100%;
+      overflow-y: auto;
+      display: block;
+      @include betterScroll(2px);
+    }
+  }
+  @include mobile {
+    margin-left: 1.5rem;
+    width: calc(100% - 3rem);
+  }
+}
+
+
+
+.notifications-enter, .notifications-leave-to {
+  opacity: 0;
+  max-height: 0 !important;
+  padding: 0 2.5rem 0 1.5rem;
+  margin-bottom: 0;
+}
+
+
+.has-text-white a{
+  color: lighten($red-gravinero, 20) !important;
+  &:hover{
+    color: lighten($red-gravinero, 40) !important;
+  }
+}
+
+
+//Mobile styles
+  @include mobile {
+    .loading{
+      margin-top: 3rem;
+    }
+    .big-search{
+      input{
+        font-size: 1rem !important;
+      }
+      .input ~ .icon{
+        font-size: 1rem !important;
+      }
+    }
+    .select-mobile-100{
+      .select, select{
+        width: 100%;
+      }
+    }
+    .column-tags{
+      margin-top: -0.75rem;
+      .field, .control{
+        width: 100%;
+      }
+    }
+    .card-header-title{
+      font-size: 1.75rem;
+    }
+    .title.is-4{
+      font-size: 1.25rem;
+    }
+    .subtitle.is-6{
+      font-size: 0.75rem;
+    }
+  }

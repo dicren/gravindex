@@ -1,0 +1,93 @@
+/// Height of the slider's handle
+/// @type String
+$control-height: 25px;
+/// Width of the slider's handle
+/// @type String
+$control-width: 25px;
+/// Color of the slider's handle
+/// @type Color
+$control-color: #FFF;
+/// Size of the slider handle's text
+/// @type String
+$control-font-size: 18px;
+/// Font Weight of the slider handle's text
+/// @type String
+$control-font-weight: 100;
+/// Color of the slider's "fill" when connected
+/// @type Color
+$fill-color: #23D160;
+/// Height of the slider's gutter
+/// @type String
+$gutter-height: 12px;
+
+/// slider Gutter
+.noUi-target {
+  height: $gutter-height;
+  &.noUi-vertical {
+    height: 200px;
+    width: $gutter-height;
+    margin: 0 auto 30px;
+  }
+}
+
+.noUi-base {
+
+  .noUi-connect {
+    background-color: $fill-color;
+  }
+  /// slider Handle
+  .noUi-handle {
+    background-color: $control-color;
+    border-radius: 6px;
+    color: #FFFFFF;
+    display: table;
+    font-size: 15px;
+    height: $control-height;
+    left: 0;
+    margin-left: -22px;
+    margin-top: -($control-height/2) + $gutter-height/2 - 1;
+    padding: 0;
+    position: absolute;
+    text-align: center;
+    top: 0;
+    width: $control-width;
+    z-index: 2;
+    box-shadow: inset 0 0 1px #FFF, inset 0 1px 7px #EBEBEB, 0 3px 6px -3px #BBB;
+    outline: none;
+
+    border: 2px solid $fill-color;
+
+
+    .noUi-horizontal & {
+      cursor: ew-resize;
+    }
+
+    .noUi-vertical & {
+      cursor: ns-resize;
+      margin-left: -($control-width/2) + $gutter-height/2;
+    }
+
+    &:hover {
+      background-color: lighten($control-color, 10%);
+    }
+
+    &.noUi-active {
+      background-color: darken($control-color, 10%);
+      z-index: 3;
+    }
+
+    &::before {
+      background: transparent;
+      content: attr(data-value);
+      display: table-cell;
+      font-size: $control-font-size;
+      font-weight: $control-font-weight;
+      position: static;
+      width: 100%;
+      vertical-align: middle;
+    }
+    &::after {
+      display: none;
+    }
+  }
+}

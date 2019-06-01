@@ -1,0 +1,14 @@
+@charset "utf-8";
+
+@import "~bulma/sass/utilities/_all";
+
+@import "variables.scss";
+@import "bulma-personalize/form.scss";
+@import "bulma-personalize/navbar.scss";
+@import "bulma-personalize/title.scss";
+@import "bulma-personalize/colors.scss";
+
+
+@import "~bulma";
+@import "~buefy/src/scss/components/_autocomplete";
+@import "~bulma-tooltip/dist/css/bulma-tooltip";

@@ -1,0 +1,28 @@
+@import "../variables.scss";
+
+$navbar-height: 5.5rem;
+$navbar-item-img-max-height: 4rem;
+
+.navbar{
+  background: linear-gradient(
+                  90deg,
+                  rgba(29, 29, 29, 1) 0%,
+                  rgba(50, 50, 50, 1) 50%,
+                  rgba(29, 29, 29, 1) 100%
+  ) !important;
+}
+
+.navbar-item{
+  font-family: league-gothic, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 1px rgba(0, 0, 0, 1);
+
+  &:hover, &.is-active{
+    color: $brown-gravinero !important;
+    background: transparent !important;
+  }
+
+}
