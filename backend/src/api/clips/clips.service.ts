@@ -1,13 +1,13 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { QueryOptions } from '../../queryOptions/QueryOptions';
-import { Episode } from '../../database/entities/Episode';
-import { Clip } from '../../database/entities/Clip';
-import { Brackets, In, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Tag } from '../../database/entities/Tag';
-import { Vote } from '../../database/entities/Vote';
-import { CreateClipDTO } from './DTO/CreateClipDTO';
-import { Playback } from '../../database/entities/Playback';
+import {ConflictException, Injectable} from '@nestjs/common';
+import {QueryOptions} from '../../queryOptions/QueryOptions';
+import {Episode} from '../../database/entities/Episode';
+import {Clip} from '../../database/entities/Clip';
+import {Brackets, Repository} from 'typeorm';
+import {InjectRepository} from '@nestjs/typeorm';
+import {Tag} from '../../database/entities/Tag';
+import {Vote} from '../../database/entities/Vote';
+import {CreateClipDTO} from './DTO/CreateClipDTO';
+import {Playback} from '../../database/entities/Playback';
 
 @Injectable()
 export class ClipsService {
@@ -38,8 +38,6 @@ export class ClipsService {
       'values',
       'values.id = clip.id',
     );
-
-    sql.select('clip.id');
 
     if (query.order === 'episode.date' || query.search) {
       sql.innerJoin('episode', 'episode', 'episode.id = clip.episode');
@@ -80,7 +78,14 @@ export class ClipsService {
 
     sql.addGroupBy('clip.id');
 
-    const count = sql.getCount();
+    let count;
+    // Con HAVING getCount no discrimina, a falta de una solución mejor hago esto
+    if (query.tags && query.tags.length > 0) {
+      const all = await sql.getRawMany();
+      count = all.length;
+    } else {
+      count = sql.getCount();
+    }
 
     sql.addSelect(
       'clip.title as title, clip.start as start, clip.end as end, ' +
@@ -203,14 +208,11 @@ export class ClipsService {
     return clipSaved;
   }
 
-  async playClip(id: number, ip: string){
-
+  async playClip(id: number, ip: string) {
     const playClip = new Playback();
     playClip.ip = ip;
     // @ts-ignore
-    playClip.clip = {id};
+    playClip.clip = { id };
     return await this.playbackRepository.save(playClip);
-
   }
-
 }
