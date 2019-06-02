@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {Injectable, Logger} from '@nestjs/common';
 import * as $ from 'cheerio';
-import axios, { AxiosRequestConfig, AxiosPromise } from 'axios';
-import { Episode } from '../../database/entities/Episode';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import axios from 'axios';
+import {Episode} from '../../database/entities/Episode';
+import {Repository} from 'typeorm';
+import {InjectRepository} from '@nestjs/typeorm';
 import * as rax from 'retry-axios';
 
 @Injectable()

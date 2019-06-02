@@ -1,19 +1,9 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Logger,
-  Param,
-  Post,
-  Query,
-  Req,
-  Headers,
-} from '@nestjs/common';
-import { ClipsService } from './clips.service';
-import { QueryOptions } from '../../queryOptions/QueryOptions';
-import { PaginationResultInterface } from '../../queryOptions/PaginationResultsInterface';
-import { Clip } from '../../database/entities/Clip';
-import { CreateClipDTO } from './DTO/CreateClipDTO';
+import {Body, Controller, Get, Headers, Logger, Param, Post, Query, Req,} from '@nestjs/common';
+import {ClipsService} from './clips.service';
+import {QueryOptions} from '../../queryOptions/QueryOptions';
+import {PaginationResultInterface} from '../../queryOptions/PaginationResultsInterface';
+import {Clip} from '../../database/entities/Clip';
+import {CreateClipDTO} from './DTO/CreateClipDTO';
 
 @Controller('clips')
 export class ClipsController {
@@ -35,7 +25,10 @@ export class ClipsController {
 
   @Post('/:id/play')
   async playClip(@Param() params, @Req() request, @Headers() headers) {
-    return await this.clipsService.playClip(params.id, headers['x-forwarded-for'] || request.ip);
+    return await this.clipsService.playClip(
+      params.id,
+      headers['x-forwarded-for'] || request.ip,
+    );
   }
 
   @Post('/:id/vote/:value')

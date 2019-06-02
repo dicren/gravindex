@@ -1,6 +1,6 @@
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '../config/config.module';
-import { ConfigService } from '../config/config.service';
+import {TypeOrmModule} from '@nestjs/typeorm';
+import {ConfigModule} from '../config/config.module';
+import {ConfigService} from '../config/config.service';
 
 export const databaseProviders = [
   TypeOrmModule.forRootAsync({
@@ -13,6 +13,7 @@ export const databaseProviders = [
       username: config.get('DB_ORM_USER'),
       password: config.get('DB_ORM_PASS'),
       database: config.get('DB_ORM_DB'),
+      keepConnectionAlive: true,
       extra: {
         charset: 'utf8_general_ci',
       },
