@@ -27,6 +27,13 @@ npm run serve
 * [nestjs](https://nestjs.com/) - Framework backend
 * [vue.js](https://vuejs.org/) - Framework frontend
 
+## TO-DO ##
+
+Estas son algunas ideas que me gustaría implementar en algún momento
+
+> * Descargar audios 
+> * Reproductor global, con cola de reproducción y constante en toda la página.
+
 ## Autor ✒️
 
 * [Dicren](https://github.com/dicren)

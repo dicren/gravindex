@@ -9,10 +9,7 @@ describe('TagsService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        DatabaseModule,
-        TypeOrmModule.forFeature([Tag]),
-      ],
+      imports: [DatabaseModule, TypeOrmModule.forFeature([Tag])],
       providers: [TagsService],
     }).compile();
 

@@ -11,10 +11,7 @@ describe('Parser Controller', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        DatabaseModule,
-        TypeOrmModule.forFeature([Episode]),
-      ],
+      imports: [DatabaseModule, TypeOrmModule.forFeature([Episode])],
       controllers: [ParserController],
       providers: [ParserService],
     }).compile();
