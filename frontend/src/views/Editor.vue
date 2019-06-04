@@ -380,7 +380,7 @@
         <div
           v-for="clip of episode.clips"
           :key="clip.id"
-          class="column is-3-fullhd is-4-desktop is-6-tablet is-12-mobile"
+          class="column is-3-fullhd is-4-desktop is-6-tablet is-12-mobile episode-list"
         >
           <div class="card">
             <header class="card-header">
@@ -413,13 +413,13 @@
 </template>
 
 <script>
-import Loading from "../components/helpers/Loading";
-import Tags from "../components/Tags";
-import Vue from "vue";
-import { timmings } from "../mixins/timings";
-import Slider from "../components/Slider";
+  import Loading from "../components/helpers/Loading";
+  import Tags from "../components/Tags";
+  import Vue from "vue";
+  import {timmings} from "../mixins/timings";
+  import Slider from "../components/Slider";
 
-export default {
+  export default {
   name: "Editor",
   mixins: [timmings],
   components: { Slider, Tags, Loading },
@@ -705,6 +705,11 @@ input[type="time"] {
 
 .playbackrateslider {
   width: 100%;
+}
+
+.episode-list .card-footer {
+  margin-top: auto;
+  border-top: 0;
 }
 
 @include mobile {

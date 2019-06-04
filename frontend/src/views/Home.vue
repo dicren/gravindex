@@ -95,14 +95,14 @@
 </template>
 
 <script>
-import Audiocard from "../components/Audiocard";
-import { pageable } from "../mixins/pageable.js";
-import Pagination from "../components/helpers/Pagination";
-import Loading from "../components/helpers/Loading";
-import Tags from "../components/Tags";
-import Vue from "vue";
+  import Audiocard from "../components/Audiocard";
+  import {pageable} from "../mixins/pageable.js";
+  import Pagination from "../components/helpers/Pagination";
+  import Loading from "../components/helpers/Loading";
+  import Tags from "../components/Tags";
+  import Vue from "vue";
 
-export default {
+  export default {
   name: "Home",
   mixins: [pageable],
   components: { Audiocard, Pagination, Loading, Tags },
@@ -119,7 +119,7 @@ export default {
   },
   created() {
     this.pageable.defaultLimit = 12;
-    this.$EventBus.$on("searchTag", (tag) => {
+    this.$EventBus.$on("searchTag", tag => {
       this.filters.tags = [tag];
     });
   },
