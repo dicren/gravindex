@@ -1,8 +1,8 @@
-import {Test, TestingModule} from '@nestjs/testing';
-import {ParserService} from './parser.service';
-import {DatabaseModule} from '../../database/database.module';
-import {TypeOrmModule} from '@nestjs/typeorm';
-import {Episode} from '../../database/entities/Episode';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ParserService } from './parser.service';
+import { DatabaseModule } from '../../database/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Episode } from '../../database/entities/Episode';
 
 describe('ParserService', () => {
   let service: ParserService;

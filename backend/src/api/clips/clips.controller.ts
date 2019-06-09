@@ -1,9 +1,19 @@
-import {Body, Controller, Get, Headers, Logger, Param, Post, Query, Req,} from '@nestjs/common';
-import {ClipsService} from './clips.service';
-import {QueryOptions} from '../../queryOptions/QueryOptions';
-import {PaginationResultInterface} from '../../queryOptions/PaginationResultsInterface';
-import {Clip} from '../../database/entities/Clip';
-import {CreateClipDTO} from './DTO/CreateClipDTO';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Logger,
+  Param,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
+import { ClipsService } from './clips.service';
+import { PaginationResultInterface } from '../../queryOptions/PaginationResultsInterface';
+import { Clip } from '../../database/entities/Clip';
+import { CreateClipDTO } from './DTO/CreateClipDTO';
+import { QueryOptionsDTO } from './DTO/QueryOptionsDTO';
 
 @Controller('clips')
 export class ClipsController {
@@ -13,7 +23,7 @@ export class ClipsController {
 
   @Get('/')
   async getClips(
-    @Query() query: QueryOptions,
+    @Query() query: QueryOptionsDTO,
   ): Promise<PaginationResultInterface<Clip>> {
     return await this.clipsService.getClips(query);
   }

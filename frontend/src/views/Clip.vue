@@ -8,6 +8,7 @@
 <script>
 import Audiocard from "../components/Audiocard";
 import Loading from "../components/helpers/Loading";
+
 export default {
   name: "Clip",
   components: { Loading, Audiocard },

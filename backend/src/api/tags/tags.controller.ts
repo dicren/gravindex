@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Query } from '@nestjs/common';
+import { Controller, Get, Logger } from '@nestjs/common';
 import { TagsService } from './tags.service';
 
 @Controller('tags')

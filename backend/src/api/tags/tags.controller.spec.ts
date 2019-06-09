@@ -1,9 +1,9 @@
-import {Test, TestingModule} from '@nestjs/testing';
-import {TagsController} from './tags.controller';
-import {DatabaseModule} from '../../database/database.module';
-import {TypeOrmModule} from '@nestjs/typeorm';
-import {Tag} from '../../database/entities/Tag';
-import {TagsService} from './tags.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { TagsController } from './tags.controller';
+import { DatabaseModule } from '../../database/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Tag } from '../../database/entities/Tag';
+import { TagsService } from './tags.service';
 
 describe('Tags Controller', () => {
   let controller: TagsController;

@@ -1,9 +1,9 @@
-import {Injectable, Logger} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import * as $ from 'cheerio';
 import axios from 'axios';
-import {Episode} from '../../database/entities/Episode';
-import {Repository} from 'typeorm';
-import {InjectRepository} from '@nestjs/typeorm';
+import { Episode } from '../../database/entities/Episode';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as rax from 'retry-axios';
 
 @Injectable()
@@ -36,14 +36,14 @@ export class ParserService {
         // Timeout Logic
       }, this.timeout);
 
-      let url;
+      let geturl;
       if (category && page) {
-        url = `https://gravina82.com/category/${category}/page/${page}/`;
+        geturl = `https://gravina82.com/category/${category}/page/${page}/`;
       } else {
-        url = 'https://gravina82.com/';
+        geturl = 'https://gravina82.com/';
       }
 
-      const pageRequest = await axios.get(url, {
+      const pageRequest = await axios.get(geturl, {
         cancelToken: source.token,
         timeout: this.timeout,
       });

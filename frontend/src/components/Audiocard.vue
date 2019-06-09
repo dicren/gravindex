@@ -109,6 +109,7 @@
 <script>
 import Tags from "./Tags";
 import { timmings } from "../mixins/timings";
+
 export default {
   name: "Audiocard",
   mixins: [timmings],

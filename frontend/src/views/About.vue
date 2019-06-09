@@ -13,31 +13,40 @@
       </a>
       obra de
       <a target="_blank" href="https://twitter.com/ICMarja">Iván Caballero</a>
-      me pareció el mejor momento.
+      me pareció el mejor momento.<br />
+      Mi intención es ir añadiendo funcionalidades a la página con el tiempo,
+      sobretodo si tiene buena acogida.
     </p>
     <h4 class="title has-text-white-ter">¿Cómo puedo colaborar?</h4>
 
     <p>
-      Puedes añadir nuevos clips a la biblioteca utilizando el botón de añadir
-      corte. También puedes escribirme si encuentras algún fallo en la web o si
-      se te ocurre alguna idea.
+      Puedes añadir nuevos clips a la biblioteca utilizando el botón de
+      <router-link to="creator">añadir</router-link>
+      corte.
+      <br />
+      También puedes <a href="https://twitter.com/dicren">escribirme</a> si
+      encuentras algún fallo en la web o si se te ocurre alguna idea. <br />
+      Si quieres colaborar con en apartado técnico puedes encontrar el código de
+      la página en <a href="https://github.com/DiCrEn/gravindex">github</a>.
     </p>
 
     <h4 class="title has-text-white-ter">La web</h4>
     <p>
       Todo el contenido de esta web es propiedad de
-      <a href="https://gravina82.com/">Gravina82</a>, y la página puedes
-      encontrarla en github (aún no, pero la subiré). Si quieres colaborar en su
-      código también será muy bienvenido. <br />
-      Si funciona y tiene buena acogida mi intención es seguir añadiendo
-      funcionalidades.
+      <a href="https://gravina82.com/">Gravina82</a> y la web puedes encontrarla
+      en <a href="https://github.com/DiCrEn/gravindex">github</a>. <br />
+      La intención de esta página es tener un índice de fácil acceso a todos
+      esos grandes momentos gravineros.
     </p>
 
-    <h4 class="title has-text-white-ter">Sobre mi</h4>
-    <p>
-      Puedes encontrarme entre otros sitios en twitter como
-      <a target="_blank" href="https://twitter.com/dicren">@dicren</a>
-    </p>
+    <h4 class="title has-text-white-ter">Versiones</h4>
+
+    <ul>
+      <li>
+        <span class="has-text-weight-bold">1.0.0</span> - Primera versión
+        pública
+      </li>
+    </ul>
   </section>
 </template>
 

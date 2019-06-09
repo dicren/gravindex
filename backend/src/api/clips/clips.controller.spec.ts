@@ -1,13 +1,13 @@
-import {Test, TestingModule} from '@nestjs/testing';
-import {ClipsController} from './clips.controller';
-import {ClipsService} from './clips.service';
-import {TypeOrmModule} from '@nestjs/typeorm';
-import {Episode} from '../../database/entities/Episode';
-import {Clip} from '../../database/entities/Clip';
-import {Vote} from '../../database/entities/Vote';
-import {Tag} from '../../database/entities/Tag';
-import {Playback} from '../../database/entities/Playback';
-import {DatabaseModule} from '../../database/database.module';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ClipsController } from './clips.controller';
+import { ClipsService } from './clips.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Episode } from '../../database/entities/Episode';
+import { Clip } from '../../database/entities/Clip';
+import { Vote } from '../../database/entities/Vote';
+import { Tag } from '../../database/entities/Tag';
+import { Playback } from '../../database/entities/Playback';
+import { DatabaseModule } from '../../database/database.module';
 
 describe('Clips Controller', () => {
   let controller: ClipsController;

@@ -1,9 +1,9 @@
-import {Test, TestingModule} from '@nestjs/testing';
-import {ParserController} from './parser.controller';
-import {DatabaseModule} from '../../database/database.module';
-import {TypeOrmModule} from '@nestjs/typeorm';
-import {Episode} from '../../database/entities/Episode';
-import {ParserService} from './parser.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ParserController } from './parser.controller';
+import { DatabaseModule } from '../../database/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Episode } from '../../database/entities/Episode';
+import { ParserService } from './parser.service';
 
 describe('Parser Controller', () => {
   let controller: ParserController;

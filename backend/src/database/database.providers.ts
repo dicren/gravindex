@@ -1,6 +1,6 @@
-import {TypeOrmModule} from '@nestjs/typeorm';
-import {ConfigModule} from '../config/config.module';
-import {ConfigService} from '../config/config.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '../config/config.module';
+import { ConfigService } from '../config/config.service';
 
 export const databaseProviders = [
   TypeOrmModule.forRootAsync({

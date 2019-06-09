@@ -4,10 +4,10 @@ import { Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginationResults } from '../../queryOptions/paginationResults';
 import { PaginationResultInterface } from '../../queryOptions/PaginationResultsInterface';
-import { QueryOptions } from '../../queryOptions/QueryOptions';
 import { OptionBuilder } from '../../queryOptions/OptionBuilder';
 import { Clip } from '../../database/entities/Clip';
 import { Vote } from '../../database/entities/Vote';
+import { QueryOptionsDTO } from './DTO/QueryOptionsDTO';
 
 @Injectable()
 export class EpisodesService {
@@ -21,7 +21,7 @@ export class EpisodesService {
   ) {}
 
   async getEpisodes(
-    queryOptions: QueryOptions,
+    queryOptions: QueryOptionsDTO,
   ): Promise<PaginationResultInterface<Episode>> {
     let options = {
       order: { date: 'DESC' },
@@ -78,6 +78,3 @@ export class EpisodesService {
     }
   }
 }
-/*
-
-*/

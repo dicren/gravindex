@@ -2,7 +2,7 @@ import { Controller, Get, Logger, Param, Query } from '@nestjs/common';
 import { EpisodesService } from './episodes.service';
 import { PaginationResultInterface } from '../../queryOptions/PaginationResultsInterface';
 import { Episode } from '../../database/entities/Episode';
-import { QueryOptions } from '../../queryOptions/QueryOptions';
+import { QueryOptionsDTO } from './DTO/QueryOptionsDTO';
 
 @Controller('episodes')
 export class EpisodesController {
@@ -12,7 +12,7 @@ export class EpisodesController {
 
   @Get('/')
   async getEpisodes(
-    @Query() query: QueryOptions,
+    @Query() query: QueryOptionsDTO,
   ): Promise<PaginationResultInterface<Episode>> {
     return await this.episodesService.getEpisodes(query);
   }

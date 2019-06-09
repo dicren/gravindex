@@ -28,7 +28,7 @@
 
     <section class="section">
       <div class="hero-foot  has-text-centered">
-        Todo el contenido de esta página es propiedad de gravina82
+        Todo el contenido de esta web es propiedad de gravina82.
       </div>
     </section>
   </div>

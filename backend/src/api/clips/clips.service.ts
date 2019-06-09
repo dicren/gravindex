@@ -1,13 +1,13 @@
-import {ConflictException, Injectable} from '@nestjs/common';
-import {QueryOptions} from '../../queryOptions/QueryOptions';
-import {Episode} from '../../database/entities/Episode';
-import {Clip} from '../../database/entities/Clip';
-import {Brackets, Repository} from 'typeorm';
-import {InjectRepository} from '@nestjs/typeorm';
-import {Tag} from '../../database/entities/Tag';
-import {Vote} from '../../database/entities/Vote';
-import {CreateClipDTO} from './DTO/CreateClipDTO';
-import {Playback} from '../../database/entities/Playback';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { Episode } from '../../database/entities/Episode';
+import { Clip } from '../../database/entities/Clip';
+import { Brackets, Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Tag } from '../../database/entities/Tag';
+import { Vote } from '../../database/entities/Vote';
+import { CreateClipDTO } from './DTO/CreateClipDTO';
+import { Playback } from '../../database/entities/Playback';
+import { QueryOptionsDTO } from './DTO/QueryOptionsDTO';
 
 @Injectable()
 export class ClipsService {
@@ -24,7 +24,7 @@ export class ClipsService {
     private readonly playbackRepository: Repository<Playback>,
   ) {}
 
-  async getClips(query: QueryOptions) {
+  async getClips(query: QueryOptionsDTO) {
     // Primero obtengo los id de la búsqueda y luego hago la búsqueda completa
     // ya que typeorm aún no me deja hacerlo de una.
     const sql = this.clipRepository.createQueryBuilder('clip').leftJoin(

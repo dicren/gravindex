@@ -413,13 +413,13 @@
 </template>
 
 <script>
-  import Loading from "../components/helpers/Loading";
-  import Tags from "../components/Tags";
-  import Vue from "vue";
-  import {timmings} from "../mixins/timings";
-  import Slider from "../components/Slider";
+import Loading from "../components/helpers/Loading";
+import Tags from "../components/Tags";
+import Vue from "vue";
+import { timmings } from "../mixins/timings";
+import Slider from "../components/Slider";
 
-  export default {
+export default {
   name: "Editor",
   mixins: [timmings],
   components: { Slider, Tags, Loading },

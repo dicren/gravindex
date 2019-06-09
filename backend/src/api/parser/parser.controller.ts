@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Param, Query } from '@nestjs/common';
+import { Controller, Get, Logger, Param } from '@nestjs/common';
 import { ParserService } from './parser.service';
 
 @Controller('parser')

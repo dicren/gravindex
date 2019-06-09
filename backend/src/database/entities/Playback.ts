@@ -1,5 +1,12 @@
-import {Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn,} from 'typeorm';
-import {Clip} from './Clip';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Clip } from './Clip';
 
 @Entity()
 export class Playback {

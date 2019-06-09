@@ -33,6 +33,7 @@ Estas son algunas ideas que me gustaría implementar en algún momento
 
 > * Descargar audios 
 > * Reproductor global, con cola de reproducción y constante en toda la página.
+> * Añadir "relacionados" en la vista completa de un clip
 
 ## Autor ✒️
 

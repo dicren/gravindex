@@ -45,6 +45,7 @@
 import Episode from "../components/Episode";
 import Loading from "../components/helpers/Loading";
 import Audiocard from "../components/Audiocard";
+
 export default {
   name: "EpisodeView",
   components: { Loading, Episode, Audiocard },

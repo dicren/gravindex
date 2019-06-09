@@ -1,11 +1,11 @@
-import {Test, TestingModule} from '@nestjs/testing';
-import {EpisodesController} from './episodes.controller';
-import {DatabaseModule} from '../../database/database.module';
-import {TypeOrmModule} from '@nestjs/typeorm';
-import {Episode} from '../../database/entities/Episode';
-import {Clip} from '../../database/entities/Clip';
-import {Vote} from '../../database/entities/Vote';
-import {EpisodesService} from './episodes.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { EpisodesController } from './episodes.controller';
+import { DatabaseModule } from '../../database/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Episode } from '../../database/entities/Episode';
+import { Clip } from '../../database/entities/Clip';
+import { Vote } from '../../database/entities/Vote';
+import { EpisodesService } from './episodes.service';
 
 describe('Episodes Controller', () => {
   let controller: EpisodesController;
