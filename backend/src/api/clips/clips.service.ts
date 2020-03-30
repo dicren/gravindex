@@ -39,6 +39,8 @@ export class ClipsService {
       'values.id = clip.id',
     );
 
+    sql.leftJoin('Tag', 'tag', 'tag.clipid = clip.id');
+
     if (query.order === 'episode.date' || query.search) {
       sql.innerJoin('episode', 'episode', 'episode.id = clip.episode');
     }
@@ -46,9 +48,6 @@ export class ClipsService {
 
     // Debería encontrar una manera más digna de hacer esto.
     if (query.tags && query.tags.length > 0) {
-      sql.leftJoin('Tag', 'tag', 'tag.clipid = clip.id');
-      // Falla con esto aunque la query está bien ><
-      // sql.addSelect("CONCAT('||',GROUP_CONCAT(tag.tag SEPARATOR '||'),'||') as tags");
       sql.having('1');
       for (let i = 0; i < query.tags.length; i++) {
         sql.andHaving(
@@ -65,13 +64,18 @@ export class ClipsService {
     sql.addOrderBy(query.order || 'values.points', 'DESC');
 
     if (query.search) {
+      sql.setParameter('search', '%' + query.search + '%');
       sql.andWhere(
         new Brackets((qb) => {
-          qb.where('clip.title LIKE :search', {
-            search: '%' + query.search + '%',
-          }).orWhere('episode.title LIKE :search', {
-            search: '%' + query.search + '%',
-          });
+          qb.where(
+            'CONVERT(clip.title USING utf8) LIKE _utf8 :search COLLATE utf8_general_ci',
+          )
+            .orWhere(
+              'CONVERT(episode.title USING utf8) LIKE _utf8 :search COLLATE utf8_general_ci',
+            )
+            .orWhere(
+              'CONVERT(tag.tag  USING utf8) LIKE _utf8 :search COLLATE utf8_general_ci',
+            );
         }),
       );
     }

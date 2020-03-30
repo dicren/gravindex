@@ -6,6 +6,7 @@ export const databaseProviders = [
   TypeOrmModule.forRootAsync({
     imports: [ConfigModule],
     inject: [ConfigService],
+    // @ts-ignore (por logging, aunque funciona)
     useFactory: async (config: ConfigService) => ({
       type: 'mysql' as 'mysql',
       host: config.get('DB_ORM_HOST'),
@@ -19,6 +20,7 @@ export const databaseProviders = [
       },
       entities: [__dirname + '/entities/**/*{.ts,.js}'],
       synchronize: true,
+      logging: config.get('DB_ORM_LOG_ERROR') === 'true' ? ['error'] : [],
     }),
   }),
 ];
