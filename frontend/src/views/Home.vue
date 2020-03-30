@@ -8,7 +8,7 @@
           v-model="filters.search"
           class="input is-large"
           type="text"
-          placeholder="¡Busca tú momento gravinero favorito!"
+          placeholder="¡Busca tu momento gravinero favorito!"
         />
         <span class="icon is-small is-right">
           <i class="fas fa-search fa-fw"></i>
