@@ -25,6 +25,13 @@ module.exports = {
   productionSourceMap: DEV,
   css: {
     sourceMap: DEV,
+    loaderOptions: {
+      sass: {
+        prependData: `
+          @import "~bulma/sass/utilities/mixins";
+          @import "@/styles/variables";`,
+      },
+    },
   },
   devServer: {
     disableHostCheck: true,

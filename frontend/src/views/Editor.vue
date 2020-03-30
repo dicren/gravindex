@@ -664,9 +664,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../styles/variables";
-@import "~bulma/sass/utilities/mixins";
-
 input[type="time"] {
   width: 8rem;
 }

@@ -226,8 +226,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "~bulma/sass/utilities/mixins";
-
 .goto {
   width: 3rem;
   margin-left: 0.25rem;
