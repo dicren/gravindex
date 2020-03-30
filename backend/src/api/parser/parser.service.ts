@@ -59,7 +59,7 @@ export class ParserService {
       let promises = [];
       for (const url of entries) {
         promises.push(
-          new Promise(async resolve => {
+          new Promise(async (resolve) => {
             if (
               (await this.episodeRepository.count({ originalUrl: url })) === 0
             ) {

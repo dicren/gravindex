@@ -13,7 +13,7 @@ export class Vote {
   @PrimaryGeneratedColumn()
   public id!: number;
 
-  @ManyToOne(type => Clip, clip => clip.votes, {
+  @ManyToOne((type) => Clip, (clip) => clip.votes, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })

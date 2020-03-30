@@ -13,7 +13,7 @@ export class Tag {
   @PrimaryColumn()
   public clipid: number;
 
-  @ManyToOne(type => Clip, clip => clip.tags, {
+  @ManyToOne((type) => Clip, (clip) => clip.tags, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })

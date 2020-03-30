@@ -26,7 +26,7 @@ export class Clip {
   @Column()
   public end!: number;
 
-  @ManyToOne(type => Episode, episode => episode.clips, {
+  @ManyToOne((type) => Episode, (episode) => episode.clips, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })
@@ -38,19 +38,19 @@ export class Clip {
   @CreateDateColumn({ select: false })
   public createdAt: Date;
 
-  @OneToMany(type => Vote, vote => vote.clip, {
+  @OneToMany((type) => Vote, (vote) => vote.clip, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })
   public votes!: Vote[];
 
-  @OneToMany(type => Playback, playback => playback.clip, {
+  @OneToMany((type) => Playback, (playback) => playback.clip, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })
   public playbacks!: Playback[];
 
-  @OneToMany(type => Tag, tagclip => tagclip.clip, {
+  @OneToMany((type) => Tag, (tagclip) => tagclip.clip, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })

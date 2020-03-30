@@ -66,7 +66,7 @@ export class ClipsService {
 
     if (query.search) {
       sql.andWhere(
-        new Brackets(qb => {
+        new Brackets((qb) => {
           qb.where('clip.title LIKE :search', {
             search: '%' + query.search + '%',
           }).orWhere('episode.title LIKE :search', {
@@ -103,10 +103,10 @@ export class ClipsService {
     if (raw.length > 0) {
       result = await this.clipRepository
         .createQueryBuilder('clip')
-        .whereInIds(raw.map(e => e.id))
+        .whereInIds(raw.map((e) => e.id))
         .innerJoinAndSelect('clip.episode', 'episode')
         .leftJoinAndSelect('clip.tags', 'tags')
-        .addOrderBy('FIELD(clip.id, ' + raw.map(a => a.id).join(',') + ')')
+        .addOrderBy('FIELD(clip.id, ' + raw.map((a) => a.id).join(',') + ')')
         .getMany();
 
       // No puedo añadir nuevas columnas hasta la 0.3, a si que me toca hacer esta chapucilla.
@@ -114,7 +114,7 @@ export class ClipsService {
       // Correct, its a hack. Official solution named addSelectAndMap will come into QueryBuilder in 0.3.0. Closing as duplicate of #296
       // https://github.com/typeorm/typeorm/issues/1822#issuecomment-376069476
       for (const res of result) {
-        const rawColumn = raw.find(e => e.id === res.id);
+        const rawColumn = raw.find((e) => e.id === res.id);
         res.up = rawColumn.up;
         res.down = rawColumn.down;
         res.points = rawColumn.points;

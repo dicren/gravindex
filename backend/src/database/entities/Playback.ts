@@ -13,7 +13,7 @@ export class Playback {
   @PrimaryGeneratedColumn()
   public id!: number;
 
-  @ManyToOne(type => Clip, clip => clip.playbacks, {
+  @ManyToOne((type) => Clip, (clip) => clip.playbacks, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })

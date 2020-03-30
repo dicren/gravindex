@@ -58,12 +58,12 @@ export class EpisodesService {
       for (const clip of episode.clips) {
         const promiseUp = this.voteRepository
           .count({ clip, value: 1 })
-          .then(result => {
+          .then((result) => {
             clip.up = result;
           });
         const promiseDown = this.voteRepository
           .count({ clip, value: -1 })
-          .then(result => {
+          .then((result) => {
             clip.down = result;
           });
         promises.push(promiseUp);

@@ -24,7 +24,7 @@ export class Episode {
   @Column({ select: false, type: 'text' })
   public description!: string;
 
-  @OneToMany(type => Clip, clip => clip.episode, {
+  @OneToMany((type) => Clip, (clip) => clip.episode, {
     onDelete: 'RESTRICT',
     onUpdate: 'CASCADE',
   })

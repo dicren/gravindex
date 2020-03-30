@@ -16,6 +16,6 @@ export class TagsService {
       .select('DISTINCT tag', 'tag')
       .addOrderBy('tag')
       .getRawMany();
-    return all.map(t => t.tag);
+    return all.map((t) => t.tag);
   }
 }
