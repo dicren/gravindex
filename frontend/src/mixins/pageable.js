@@ -149,6 +149,7 @@ export const pageable = {
           }
         }
       } else {
+        // eslint-disable-next-line
         console.error("You need define getUrl in data into your component");
       }
     },
