@@ -2,13 +2,47 @@
 
 @import "~bulma/sass/utilities/_all";
 
-@import "variables.scss";
-@import "bulma-personalize/form.scss";
-@import "bulma-personalize/navbar.scss";
-@import "bulma-personalize/title.scss";
-@import "bulma-personalize/colors.scss";
+@import "bulma-customize/all";
 
+@import "~bulma/sass/base/_all";
 
-@import "~bulma";
+@import "~bulma/sass/elements/all";
+@import "~bulma/sass/components/all";
+@import "~bulma/sass/form/all";
+@import "~bulma/sass/grid/all";
+@import "~bulma/sass/layout/all";
+
 @import "~buefy/src/scss/components/_autocomplete";
 @import "~@creativebulma/bulma-tooltip";
+
+
+.navbar{
+  background: linear-gradient(
+                  90deg,
+                  rgba(29, 29, 29, 1) 0%,
+                  rgba(50, 50, 50, 1) 50%,
+                  rgba(29, 29, 29, 1) 100%
+  ) !important;
+}
+
+.navbar-item{
+  font-family: league-gothic, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 1px rgba(0, 0, 0, 1);
+  white-space: pre-wrap;
+
+  &:hover, &.is-active{
+    color: $brown-gravinero !important;
+    background: transparent !important;
+  }
+
+}
+
+.title{
+  font-style: normal;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 1px rgba(0, 0, 0, 1);
+}
