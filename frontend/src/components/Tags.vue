@@ -88,40 +88,40 @@ export default {
       type: Array,
       default: () => {
         return [];
-      }
+      },
     },
     loading: {
       type: Boolean,
-      default: false
+      default: false,
     },
     alwaysinput: {
       type: Boolean,
-      default: false
+      default: false,
     },
     removable: {
       type: Boolean,
-      default: false
+      default: false,
     },
     placeholder: {
       type: String,
-      default: "Añadir tag"
+      default: "Añadir tag",
     },
     controlClass: {
       type: String,
-      default: ""
+      default: "",
     },
     inputSize: {
       type: String,
-      default: ""
+      default: "",
     },
     showAddButton: {
       type: Boolean,
-      default: false
+      default: false,
     },
     showHideButton: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   data() {
     return {
@@ -130,7 +130,7 @@ export default {
       allAutocompleteTags: [],
       loadingTags: false,
       isFetching: false,
-      show: false
+      show: false,
     };
   },
   computed: {},
@@ -204,14 +204,14 @@ export default {
           this.allAutocompleteTags = JSON.parse(localStorage.getItem("tags"));
         }
       }
-      this.autocompleteTags = this.allAutocompleteTags.filter(m =>
+      this.autocompleteTags = this.allAutocompleteTags.filter((m) =>
         removeAccents(m.toLowerCase()).includes(
           removeAccents(text.toLowerCase())
         )
       );
       this.isFetching = false;
-    }
-  }
+    },
+  },
 };
 </script>
 

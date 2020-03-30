@@ -10,18 +10,18 @@ export default {
   props: {
     properties: Object,
     points: Array,
-    slideCallback: Function
+    slideCallback: Function,
   },
   data() {
     return {
       slider: null,
-      onslide: false
+      onslide: false,
     };
   },
   watch: {
     points(value) {
       if (!this.onslide) this.slider.noUiSlider.set(value);
-    }
+    },
   },
   created() {},
   mounted() {
@@ -30,7 +30,7 @@ export default {
 
     const that = this;
 
-    this.slider.noUiSlider.on("slide", function(event) {
+    this.slider.noUiSlider.on("slide", function (event) {
       that.onslide = true;
       that.$emit("slide", event);
       if (that.slideCallback) that.slideCallback(event, this);
@@ -39,8 +39,10 @@ export default {
       this.onslide = false;
     });
   },
-  methods: {}
+  methods: {},
 };
 </script>
 
-<style scoped></style>
+<style lang="scss">
+
+</style>

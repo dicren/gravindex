@@ -18,42 +18,42 @@ export default new Router({
     {
       path: "/",
       name: "home",
-      component: Home
+      component: Home,
     },
     {
       path: "/episodes/:page?",
       name: "episodes",
-      component: Episodes
+      component: Episodes,
     },
     {
       path: "/episode/:title",
       name: "episode",
-      component: Episode
+      component: Episode,
     },
     {
       path: "/creator",
       name: "creator search",
-      component: EditorSearch
+      component: EditorSearch,
     },
     {
       path: "/creator/:title",
       name: "creator",
-      component: Editor
+      component: Editor,
     },
     {
       path: "/about",
       name: "about",
-      component: About
+      component: About,
     },
     {
       path: "/:id",
       name: "clip",
-      component: Clip
+      component: Clip,
     },
     {
       path: "*",
       name: "E404",
-      component: E404
-    }
-  ]
+      component: E404,
+    },
+  ],
 });

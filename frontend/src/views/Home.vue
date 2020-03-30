@@ -50,8 +50,8 @@
       </div>
 
       <div class="column is-narrow is-hidden-mobile">
-        <div class="field ">
-          <div class="control has-text-right ">
+        <div class="field">
+          <div class="control has-text-right">
             <button class="button is-warning" @click="resetForm">
               Limpiar
             </button>
@@ -113,13 +113,13 @@ export default {
       filters: {
         search: "",
         order: "clip.createdAt",
-        tags: []
-      }
+        tags: [],
+      },
     };
   },
   created() {
     this.pageable.defaultLimit = 12;
-    this.$EventBus.$on("searchTag", tag => {
+    this.$EventBus.$on("searchTag", (tag) => {
       this.filters.tags = [tag];
     });
   },
@@ -135,7 +135,7 @@ export default {
       this.filters = {
         search: "",
         order: "points",
-        tags: []
+        tags: [],
       };
     },
     addTag(value) {
@@ -145,8 +145,8 @@ export default {
     },
     remTag(value) {
       Vue.delete(this.filters.tags, this.filters.tags.indexOf(value));
-    }
-  }
+    },
+  },
 };
 </script>
 

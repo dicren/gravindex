@@ -14,7 +14,7 @@ export default {
   components: { Loading, Audiocard },
   data() {
     return {
-      clip: null
+      clip: null,
     };
   },
   async created() {
@@ -24,7 +24,7 @@ export default {
     } catch (ex) {
       this.notifyError(ex, true);
     }
-  }
+  },
 };
 </script>
 

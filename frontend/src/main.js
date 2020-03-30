@@ -24,7 +24,7 @@ Vue.prototype.$EventBus = new Vue();
 
 const mixin = {
   methods: {
-    request: function(endpoint, type = "get", data, cancelable) {
+    request: function (endpoint, type = "get", data, cancelable) {
       let headers;
       if (data && data.constructor && data.constructor === FormData) {
         headers = { "content-type": "multipart/form-data" };
@@ -50,7 +50,7 @@ const mixin = {
         params: type.toUpperCase() === "GET" ? data : undefined,
         url: url,
         cancelToken: cancelToken ? cancelToken.token : undefined,
-        json: true
+        json: true,
       });
 
       if (cancelToken) {
@@ -73,7 +73,7 @@ const mixin = {
 
         this.$EventBus.$emit("notify", {
           class: "is-danger",
-          text: text
+          text: text,
         });
       }
     },
@@ -91,8 +91,8 @@ const mixin = {
         "-" +
         episode.title.replace(/[^a-zA-Z0-9 ]/g, "").replace(/ /g, "-")
       );
-    }
-  }
+    },
+  },
 };
 
 Vue.mixin(mixin);
@@ -100,12 +100,12 @@ Vue.mixin(mixin);
 if (process.env.VUE_APP_ANALYTICS_KEY) {
   Vue.use(VueAnalytics, {
     id: process.env.VUE_APP_ANALYTICS_KEY,
-    router
+    router,
   });
 }
 
 new Vue({
   router,
   store,
-  render: h => h(App)
+  render: (h) => h(App),
 }).$mount("#app");

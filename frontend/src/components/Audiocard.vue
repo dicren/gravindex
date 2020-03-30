@@ -47,7 +47,7 @@
             :class="{
               'is-success': !playing || loading,
               'is-warning': playing && !loading,
-              'is-loading': loading
+              'is-loading': loading,
             }"
           >
             <span class="icon animated grow" :class="{ visible: !playing }">
@@ -117,7 +117,7 @@ export default {
   props: {
     clip: Object,
     episode: Object,
-    view: String
+    view: String,
   },
   data() {
     return {
@@ -131,8 +131,8 @@ export default {
       playSend: false,
       voteLoading: {
         up: false,
-        down: false
-      }
+        down: false,
+      },
     };
   },
   computed: {
@@ -147,10 +147,10 @@ export default {
     },
     shareUrl() {
       return location.origin + "/" + this.clip.id;
-    }
+    },
   },
   created() {
-    this.$EventBus.$on("clip-play", id => {
+    this.$EventBus.$on("clip-play", (id) => {
       if (this.clip.id !== id && this.playing) {
         this.play();
         this.player.currentTime = this.clip.start;
@@ -158,7 +158,7 @@ export default {
     });
   },
   mounted() {
-    this.$refs.progress.addEventListener("click", e => {
+    this.$refs.progress.addEventListener("click", (e) => {
       const percent = e.offsetX / this.$refs.progress.offsetWidth;
       this.player.currentTime = percent * this.duration + this.clip.start;
     });
@@ -220,7 +220,7 @@ export default {
         if (result.error) {
           this.$EventBus.$emit("notify", {
             class: "is-danger",
-            text: "¡No puedes votar dos veces!"
+            text: "¡No puedes votar dos veces!",
           });
         } else {
           if (result.delete !== 0) {
@@ -249,7 +249,7 @@ export default {
         if (this.isError(ex, 409, "Tag repeated")) {
           this.$EventBus.$emit("notify", {
             class: "is-warning",
-            text: "Ese tag ya existe en ese clip."
+            text: "Ese tag ya existe en ese clip.",
           });
         } else {
           this.notifyError(ex);
@@ -274,15 +274,15 @@ export default {
       window.getSelection().removeAllRanges();
       this.$EventBus.$emit("notify", {
         class: "is-primary",
-        text: "Enlace copiado al portapapeles. ¡Comparte la palabra gravinera!"
+        text: "Enlace copiado al portapapeles. ¡Comparte la palabra gravinera!",
       });
-    }
+    },
   },
   beforeDestroy() {
     if (this.player != null) {
       this.player.pause();
     }
-  }
+  },
 };
 </script>
 

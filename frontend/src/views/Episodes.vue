@@ -66,14 +66,14 @@ export default {
       getUrl: "/episodes/",
       saveLimit: true,
       filters: {
-        search: ""
-      }
+        search: "",
+      },
     };
   },
   created() {
     this.pageable.defaultLimit = 12;
   },
-  methods: {}
+  methods: {},
 };
 </script>
 

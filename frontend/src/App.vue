@@ -27,7 +27,7 @@
     </div>
 
     <section class="section">
-      <div class="hero-foot  has-text-centered">
+      <div class="hero-foot has-text-centered">
         Todo el contenido de esta web es propiedad de gravina82.
       </div>
     </section>
@@ -47,9 +47,9 @@ export default {
     return {
       notifications: {
         list: [],
-        index: 0
+        index: 0,
       },
-      errorPage: false
+      errorPage: false,
     };
   },
   computed: {
@@ -60,15 +60,15 @@ export default {
         default:
           return Eunknown;
       }
-    }
+    },
   },
   watch: {
     $route() {
       this.errorPage = false;
-    }
+    },
   },
   created() {
-    this.$EventBus.$on("notify", notification => {
+    this.$EventBus.$on("notify", (notification) => {
       notification.key = ++this.notifications.index;
       notification.timeout = setTimeout(() => {
         const index = this.notifications.list.indexOf(notification);
@@ -77,7 +77,7 @@ export default {
       this.notifications.list.push(notification);
     });
 
-    this.$EventBus.$on("error-page", result => {
+    this.$EventBus.$on("error-page", (result) => {
       this.errorPage = result;
     });
   },
@@ -93,8 +93,8 @@ export default {
         this.notifications.list[index].timeout
       )
         clearTimeout(this.notifications.list[index].timeout);
-    }
-  }
+    },
+  },
 };
 </script>
 

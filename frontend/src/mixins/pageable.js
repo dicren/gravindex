@@ -14,7 +14,7 @@ export const pageable = {
         forcePage: null,
         totalElements: 0,
         defaultLimit: 10,
-        defaultPage: 1
+        defaultPage: 1,
       },
       filters: {},
 
@@ -24,9 +24,9 @@ export const pageable = {
         lastFilter: null,
         default: {
           pageable: {},
-          filters: {}
-        }
-      }
+          filters: {},
+        },
+      },
     };
   },
   watch: {
@@ -34,15 +34,15 @@ export const pageable = {
       handler(/*niu, old*/) {
         this.updateListLauncher();
       },
-      deep: true
+      deep: true,
     },
-    "pageable.limit": function(val) {
+    "pageable.limit": function (val) {
       if (this.saveLimit) {
         localStorage.setItem("savedLimit" + btoa(this.saveLimit), val);
       }
       this.updateList();
     },
-    "pageable.page": function() {
+    "pageable.page": function () {
       if (!this.pageable.forcePage) {
         this.updateList();
       }
@@ -51,7 +51,7 @@ export const pageable = {
       if (Object.entries(to.query).length === 0) {
         this.resetForm();
       }
-    }
+    },
   },
   mounted() {
     if (this.saveLimit !== false) {
@@ -131,11 +131,11 @@ export const pageable = {
             true
           );
           this.pageableAux.canceltoken = cancelToken;
-          req.then(res => {
+          req.then((res) => {
             this.elements = res.data.results;
             this.pageable.totalElements = res.data.total;
           });
-          req.catch(ex => {
+          req.catch((ex) => {
             if (Axios.isCancel(ex)) {
               //console.log("Request canceled");
             } else {
@@ -172,6 +172,6 @@ export const pageable = {
         }
       }
       return false;
-    }
-  }
+    },
+  },
 };

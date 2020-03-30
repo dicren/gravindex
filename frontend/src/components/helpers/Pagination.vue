@@ -47,7 +47,7 @@
         v-bind:key="pagec"
         :ref="
           'pagebtn' +
-            (Math.floor(displaypages.length / 2) === index ? 'center' : index)
+          (Math.floor(displaypages.length / 2) === index ? 'center' : index)
         "
         class="page-item page"
       >
@@ -56,7 +56,7 @@
           class="button pagination-link"
           :class="{
             'is-current': pagec === page,
-            center: Math.floor(displaypages.length / 2) === index
+            center: Math.floor(displaypages.length / 2) === index,
           }"
           :aria-label="'Goto page ' + pagec"
           >{{ pagec }}</a
@@ -106,22 +106,22 @@ export default {
     total: Number,
     page: Number,
     limit: Number,
-    options: Array
+    options: Array,
   },
-  data: function() {
+  data: function () {
     return {
       limits: [5, 10, 20, 50, 100],
       nButtons: 0,
       gotovalue: null,
       timeoutgoto: null,
-      wrongNumber: false
+      wrongNumber: false,
     };
   },
   created() {
     if (this.options) this.limits = this.options;
   },
   computed: {
-    displaypages: function() {
+    displaypages: function () {
       let elementsLeft = Math.floor((this.nButtons - 1) / 2);
       let elementsRight = elementsLeft;
 
@@ -150,9 +150,9 @@ export default {
       }
       return pages;
     },
-    lastpage: function() {
+    lastpage: function () {
       return Math.ceil(this.total / this.limit);
-    }
+    },
   },
   mounted() {
     window.addEventListener("resize", this.recalculateDisplay);
@@ -217,11 +217,11 @@ export default {
           this.$emit("update:page", parseInt(this.gotovalue));
         }, 500);
       }
-    }
+    },
   },
   destroyed() {
     window.removeEventListener("resize", this.recalculateDisplay);
-  }
+  },
 };
 </script>
 

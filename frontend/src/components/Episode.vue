@@ -44,9 +44,9 @@ export default {
   name: "Episode",
   props: {
     episode: Object,
-    type: String
+    type: String,
   },
-  computed: {}
+  computed: {},
 };
 </script>
 

@@ -51,7 +51,7 @@ export default {
   components: { Loading, Episode, Audiocard },
   data() {
     return {
-      episode: null
+      episode: null,
     };
   },
   async created() {
@@ -66,7 +66,7 @@ export default {
     } catch (e) {
       this.notifyError(e, true);
     }
-  }
+  },
 };
 </script>
 

@@ -152,7 +152,7 @@
                       :class="{
                         'is-success': !playing,
                         'is-warning': playing,
-                        'is-loading': waiting
+                        'is-loading': waiting,
                       }"
                       @click="play"
                       ><span
@@ -235,12 +235,12 @@
                         step: 0.5,
                         range: {
                           min: [0.5],
-                          max: [4]
-                        }
+                          max: [4],
+                        },
                       }"
                       @slide="playbackRate = $event[0]"
                       :points="[playbackRate]"
-                    ></Slider>
+                    />
                   </div>
                 </div>
 
@@ -447,12 +447,12 @@ export default {
       saveloading: false,
       zoom: {
         start: 0,
-        end: 0
+        end: 0,
       },
       validation: {
         title: false,
-        tags: false
-      }
+        tags: false,
+      },
     };
   },
   computed: {
@@ -463,7 +463,7 @@ export default {
       return this.formatTime(
         this.hhmmssToSeconds(this.end) - this.hhmmssToSeconds(this.start)
       );
-    }
+    },
   },
   watch: {
     currentTime(value) {
@@ -471,7 +471,7 @@ export default {
     },
     playbackRate(value) {
       this.player.playbackRate = parseFloat(value);
-    }
+    },
   },
   async created() {
     try {
@@ -517,16 +517,16 @@ export default {
         behaviour: "unconstrained-tap",
         range: {
           min: [this.zoom.start],
-          max: [this.zoom.end]
+          max: [this.zoom.end],
         },
         format: {
-          to: value => {
+          to: (value) => {
             return this.formatTime(value, true);
           },
-          from: value => {
+          from: (value) => {
             return this.hhmmssToSeconds(value);
-          }
-        }
+          },
+        },
       };
     },
     addTag(value) {
@@ -646,20 +646,20 @@ export default {
           .then(() => {
             this.$router.push("/episode/" + this.episode.id);
           })
-          .catch(ex => {
+          .catch((ex) => {
             this.notifyError(ex);
           })
           .finally(() => {
             this.saveloading = false;
           });
       }
-    }
+    },
   },
   beforeDestroy() {
     if (this.player) {
       this.player.pause();
     }
-  }
+  },
 };
 </script>
 

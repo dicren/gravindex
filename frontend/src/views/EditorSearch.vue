@@ -40,11 +40,11 @@ export default {
     return {
       data: [],
       selected: null,
-      isFetching: false
+      isFetching: false,
     };
   },
   methods: {
-    getAsyncData: debounce(function(name) {
+    getAsyncData: debounce(function (name) {
       if (!name.length) {
         this.data = [];
         return;
@@ -55,7 +55,7 @@ export default {
           this.data = data.results;
           //data.results.forEach(item => this.data.push(item));
         })
-        .catch(ex => {
+        .catch((ex) => {
           this.data = [];
           this.notifyError(ex);
         })
@@ -65,8 +65,8 @@ export default {
     }, 500),
     clickSelect(event) {
       this.$router.push("/creator/" + event.id);
-    }
-  }
+    },
+  },
 };
 </script>
 

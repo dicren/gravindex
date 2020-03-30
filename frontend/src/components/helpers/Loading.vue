@@ -1,7 +1,7 @@
 <template>
   <div class="loading">
     <div class="lds-css ng-scope">
-      <div style="width:100%;height:100%" class="lds-ripple">
+      <div style="width: 100%; height: 100%;" class="lds-ripple">
         <div></div>
         <div></div>
       </div>
@@ -11,7 +11,7 @@
 
 <script>
 export default {
-  name: "Loading"
+  name: "Loading",
 };
 </script>
 

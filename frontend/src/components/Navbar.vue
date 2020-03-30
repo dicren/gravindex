@@ -1,5 +1,5 @@
 <template>
-  <nav class="navbar is-dark " role="navigation" aria-label="main navigation">
+  <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
       <router-link class="navbar-item is-hidden-mobile" to="/">
         <img src="@/assets/logo.png" />
@@ -10,11 +10,7 @@
       </router-link>
 
       <router-link class="navbar-item" to="/episodes">
-        <span
-          class="is-hidden-mobile
-"
-          >Lista de </span
-        >&nbsp;episodios
+        <span class="is-hidden-mobile">Lista de </span>&nbsp;episodios
       </router-link>
 
       <router-link class="navbar-item" to="/creator">
@@ -34,8 +30,8 @@ export default {
   methods: {
     not() {
       this.$EventBus.$emit("error-page", 404);
-    }
-  }
+    },
+  },
 };
 </script>
 
