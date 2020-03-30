@@ -43,6 +43,9 @@
 
     <ul>
       <li>
+        <span class="has-text-weight-bold">1.0.1</span> - Mejorada la búsqueda
+      </li>
+      <li>
         <span class="has-text-weight-bold">1.0.0</span> - Primera versión
         pública
       </li>
