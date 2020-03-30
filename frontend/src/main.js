@@ -60,7 +60,6 @@ const mixin = {
       }
     },
     notifyError(ex, redirect) {
-      console.error(ex);
       if (ex.response && ex.response.status && redirect) {
         this.$EventBus.$emit("error-page", ex.response.status);
       } else {
