@@ -140,7 +140,7 @@
                   <!-- Para alinearlo fácil -->
                   <div class="buttons">
                     <a
-                      class="button is-rounded button-animated is-icon is-warning tooltip"
+                      class="button is-rounded button-animated is-icon is-warning has-tooltip-arrow"
                       data-tooltip="Ir al inicio del corte"
                       @click="seekInit"
                     >
@@ -166,7 +166,7 @@
                     ></a>
 
                     <a
-                      class="button is-rounded button-animated is-icon is-warning tooltip"
+                      class="button is-rounded button-animated is-icon is-warning has-tooltip-arrow"
                       data-tooltip="Ir al 5 segundos antes del final del corte"
                       @click="seekEnd"
                     >
@@ -175,7 +175,7 @@
                   </div>
                   <div class="buttons">
                     <a
-                      class="button is-rounded button-animated is-icon is-info tooltip"
+                      class="button is-rounded button-animated is-icon is-info has-tooltip-arrow"
                       data-tooltip="Hacer zoom a la sección delimitada"
                       @click="setZoom()"
                     >
@@ -183,7 +183,7 @@
                     </a>
 
                     <a
-                      class="button is-rounded button-animated is-icon is-info tooltip"
+                      class="button is-rounded button-animated is-icon is-info has-tooltip-arrow"
                       data-tooltip="Retrocede el zoom"
                       @click="setZoom(-10 * 60)"
                     >
@@ -191,7 +191,7 @@
                     </a>
 
                     <a
-                      class="button is-rounded button-animated is-icon is-info tooltip"
+                      class="button is-rounded button-animated is-icon is-info has-tooltip-arrow"
                       data-tooltip="Reiniciar zoom"
                       @click="setZoom(0)"
                     >
@@ -200,7 +200,7 @@
                   </div>
                   <div class="buttons">
                     <a
-                      class="button is-rounded button-animated is-icon is-warning tooltip"
+                      class="button is-rounded button-animated is-icon is-warning has-tooltip-arrow"
                       data-tooltip="Retrocede 1 minuto"
                       @click="movePlay(-60)"
                     >
@@ -208,7 +208,7 @@
                     </a>
 
                     <a
-                      class="button is-rounded button-animated is-icon is-warning tooltip"
+                      class="button is-rounded button-animated is-icon is-warning has-tooltip-arrow"
                       data-tooltip="Retrocede 10 segundos"
                       @click="movePlay(-10)"
                     >
@@ -216,7 +216,7 @@
                     </a>
 
                     <a
-                      class="button is-rounded button-animated is-icon is-warning tooltip"
+                      class="button is-rounded button-animated is-icon is-warning has-tooltip-arrow"
                       data-tooltip="Avanza 30 segundos"
                       @click="movePlay(30)"
                     >
