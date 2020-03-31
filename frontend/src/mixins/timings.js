@@ -1,3 +1,43 @@
+const pad = (s) => {
+  return s < 10 ? "0" + s : s;
+};
+const formatDate = (date) => {
+  if (date) {
+    if (typeof date === "string" && date.charAt(2) === "/") {
+      return date;
+    }
+    const d = new Date(date);
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  } else {
+    return "";
+  }
+};
+
+const formatDateFull = (date) => {
+  if (date) {
+    const meses = [
+      "Enero",
+      "Febrero",
+      "Marzo",
+      "Abril",
+      "Mayo",
+      "Junio",
+      "Julio",
+      "Agosto",
+      "Septiembre",
+      "Octubre",
+      "Noviembre",
+      "Diciembre",
+    ];
+    const d = new Date(date);
+    return `${pad(d.getDate())} de ${
+      meses[d.getMonth()]
+    } de ${d.getFullYear()}`;
+  } else {
+    return "";
+  }
+};
+
 export const timmings = {
   methods: {
     formatTime(seconds, hours) {
@@ -24,5 +64,9 @@ export const timmings = {
       }
       return h * 60 * 60 + m * 60 + s;
     },
+  },
+  filters: {
+    $formatDate: formatDate,
+    $formatDateFull: formatDateFull,
   },
 };

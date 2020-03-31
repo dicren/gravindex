@@ -20,7 +20,7 @@
             {{ props.option.title }}
             <br />
             <small>
-              {{ $moment(props.option.date).format("DD/MM/YYYY") }}
+              {{ props.option.date | $formatDate }}
             </small>
           </div>
         </div>
@@ -32,10 +32,12 @@
 <script>
 import debounce from "lodash/debounce";
 import BAutocomplete from "buefy/src/components/autocomplete/Autocomplete";
+import { timmings } from "@/mixins/timings";
 
 export default {
   name: "EditorSearch",
   components: { BAutocomplete },
+  mixins: [timmings],
   data() {
     return {
       data: [],

@@ -3,7 +3,6 @@ import App from "./App.vue";
 import router from "./router";
 import store from "./store";
 import "./icons";
-import Moment from "moment";
 import Axios from "axios";
 import VueAnalytics from "vue-analytics";
 
@@ -18,8 +17,6 @@ const SERVER_URL =
 const createCancelToken = () => Axios.CancelToken.source();
 
 Vue.config.productionTip = false;
-Moment.locale("es");
-Vue.prototype.$moment = Moment;
 
 Vue.prototype.$EventBus = new Vue();
 

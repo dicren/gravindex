@@ -23,7 +23,7 @@
           <div class="media-content episode-info">
             <p class="title is-4">{{ episode.title }}</p>
             <p class="subtitle is-6">
-              {{ $moment(episode.date).format("DD/MM/YYYY") }}
+              {{ episode.date | $formatDate }}
             </p>
           </div>
         </div>
@@ -191,11 +191,7 @@ export default {
         this.player.ontimeupdate = () => {
           this.loading = false;
           this.currentms = this.player.currentTime - this.clip.start;
-          const duration = this.$moment.duration(
-            Math.floor(this.currentms),
-            "seconds"
-          );
-          this.currentTime = this.formatTime(duration.asSeconds());
+          this.currentTime = this.formatTime(Math.floor(this.currentms));
           if (this.player.currentTime >= this.clip.end) {
             this.play(true);
             this.player.currentTime = this.clip.start;

@@ -18,7 +18,7 @@
         <div class="title">
           <p>{{ episode.title }}</p>
           <p class="subtitle is-6">
-            {{ $moment(episode.date).format("DD [de] MMMM [de] YYYY") }}
+            {{ episode.date | $formatDateFull }}
           </p>
         </div>
       </div>
@@ -42,12 +42,15 @@
 </template>
 
 <script>
+import { timmings } from "@/mixins/timings";
+
 export default {
   name: "Episode",
   props: {
     episode: Object,
     type: String,
   },
+  mixins: [timmings],
   computed: {},
 };
 </script>
