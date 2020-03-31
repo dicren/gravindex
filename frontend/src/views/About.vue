@@ -43,11 +43,45 @@
 
     <ul>
       <li>
-        <span class="has-text-weight-bold">1.0.1</span> - Mejorada la búsqueda
+        <span class="has-text-weight-bold">1.1.0</span> - 31/03/2020
+        <ul>
+          <li>
+            Mejorado el buscador de episodios
+          </li>
+          <li>
+            Optimizada la web
+          </li>
+          <li>
+            Ahora en las ruls sólo aparecen los parámetros necesarios
+          </li>
+          <li>
+            Metadatos al compartir clips en redes sociales
+          </li>
+          <li>
+            El buscador de tags no sugiere tags repetidos
+          </li>
+          <li>
+            Ordenado en orden alfabético el buscador de tags
+          </li>
+          <li>
+            Arreglados algunos pequeños errores
+          </li>
+          <li>
+            Arreglados errores de diseño
+          </li>
+        </ul>
       </li>
       <li>
-        <span class="has-text-weight-bold">1.0.0</span> - Primera versión
-        pública
+        <span class="has-text-weight-bold">1.0.1</span> - 30/03/2020
+        <ul>
+          <li>Mejorada la búsqueda</li>
+        </ul>
+      </li>
+      <li>
+        <span class="has-text-weight-bold">1.0.0</span> - 09/06/2019
+        <ul>
+          <li>Primera versión pública</li>
+        </ul>
       </li>
     </ul>
   </section>
@@ -59,8 +93,16 @@ export default {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 p {
   margin-bottom: 2rem;
+}
+li {
+  list-style-type: disc;
+}
+
+li li {
+  margin-left: 2rem;
+  list-style-type: circle;
 }
 </style>
