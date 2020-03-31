@@ -32,7 +32,14 @@
           :key="episode.id"
           class="column is-3-fullhd is-3-desktop is-4-tablet is-6-mobile"
         >
-          <router-link :to="'/episode/' + buildUrl(episode)">
+          <router-link
+            :to="{
+              name: 'episode',
+              params: {
+                title: buildUrl(episode),
+              },
+            }"
+          >
             <Episode :episode="episode" type="tiny"></Episode>
           </router-link>
         </div>

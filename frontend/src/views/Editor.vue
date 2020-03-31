@@ -644,7 +644,12 @@ export default {
 
         this.request("/clips/", "POST", data)
           .then(() => {
-            this.$router.push("/episode/" + this.episode.id);
+            this.$router
+              .push({
+                name: "episode",
+                params: { title: this.episode.id },
+              })
+              .catch((err) => {});
           })
           .catch((ex) => {
             this.notifyError(ex);

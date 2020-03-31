@@ -64,7 +64,9 @@ export default {
         });
     }, 500),
     clickSelect(event) {
-      this.$router.push("/creator/" + event.id);
+      this.$router
+        .push({ name: "creator", params: { title: event.id } })
+        .catch((err) => {});
     },
   },
 };

@@ -158,7 +158,7 @@ export const pageable = {
             urlFilters[filter] = this.filters[filter];
           }
         }
-        this.$router.replace({ query: urlFilters });
+        this.$router.replace({ query: urlFilters }).catch(() => {});
       }
     },
     updateList(force) {

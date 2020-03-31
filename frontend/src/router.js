@@ -32,7 +32,7 @@ export default new Router({
     },
     {
       path: "/creator",
-      name: "creator search",
+      name: "creatorSearch",
       component: EditorSearch,
     },
     {

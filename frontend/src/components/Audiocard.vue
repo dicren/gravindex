@@ -6,7 +6,14 @@
       </p>
     </header>
     <div class="card-content">
-      <router-link :to="'/episode/' + buildUrl(episode)">
+      <router-link
+        :to="{
+          name: 'episode',
+          params: {
+            title: buildUrl(episode),
+          },
+        }"
+      >
         <div class="media" v-if="view !== 'tiny'">
           <div class="media-left">
             <figure class="image is-48x48">
@@ -265,7 +272,9 @@ export default {
       if (this.$route.path === "/") {
         this.$EventBus.$emit("searchTag", tag.tag);
       } else {
-        this.$router.push("/?tags=" + tag.tag);
+        this.$router
+          .push({ name: "home", query: { tags: [tag.tag] } })
+          .catch((err) => {});
       }
     },
     share() {

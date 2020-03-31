@@ -1,23 +1,23 @@
 <template>
   <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
-      <router-link class="navbar-item is-hidden-mobile" to="/">
+      <router-link class="navbar-item is-hidden-mobile" :to="{ name: 'home' }">
         <img src="@/assets/logo.png" />
       </router-link>
 
-      <router-link class="navbar-item" to="/">
+      <router-link class="navbar-item" :to="{ name: 'home' }">
         Biblioteca&nbsp;<span class="is-hidden-mobile">gravinera</span>
       </router-link>
 
-      <router-link class="navbar-item" to="/episodes">
+      <router-link class="navbar-item" :to="{ name: 'episodes' }">
         <span class="is-hidden-mobile">Lista de </span>&nbsp;episodios
       </router-link>
 
-      <router-link class="navbar-item" to="/creator">
+      <router-link class="navbar-item" :to="{ name: 'creatorSearch' }">
         Añadir corte
       </router-link>
 
-      <router-link class="navbar-item is-hidden-mobile" to="/about">
+      <router-link class="navbar-item is-hidden-mobile" :to="{ name: 'about' }">
         Sobre esta página
       </router-link>
     </div>

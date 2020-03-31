@@ -21,7 +21,7 @@
 
     <p>
       Puedes añadir nuevos clips a la biblioteca utilizando el botón de
-      <router-link to="creator">añadir</router-link>
+      <router-link :to="{ name: 'creatorSearch' }">añadir</router-link>
       corte.
       <br />
       También puedes <a href="https://twitter.com/dicren">escribirme</a> si

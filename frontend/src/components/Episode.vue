@@ -26,7 +26,9 @@
 
     <footer class="card-footer icon-buttons">
       <div class="">
-        <router-link class="button is-info" :to="'/creator/' + episode.id"
+        <router-link
+          class="button is-info"
+          :to="{ name: 'creator', params: { title: episode.id } }"
           >Crear clip</router-link
         >
       </div>
