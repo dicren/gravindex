@@ -28,7 +28,17 @@
 
     <footer class="footer">
       <div class="hero-foot has-text-centered">
-        Todo el contenido de esta web es propiedad de gravina82.
+        <p>
+          Todo el contenido de esta web es propiedad de
+          <a href="https://gravina82.com" target="_blank">gravina82</a>.
+        </p>
+        <p>
+          <span class="copyleft">&copy;</span> Índice gravinero
+          <a href="https://github.com/DiCrEn/gravindex" target="_blank"
+            >v. {{ version }}</a
+          >
+          by Dicren with &#9829;
+        </p>
       </div>
     </footer>
   </div>
@@ -60,6 +70,9 @@ export default {
         default:
           return Eunknown;
       }
+    },
+    version() {
+      return process.env.PACKAGE_VERSION;
     },
   },
   watch: {
@@ -108,5 +121,14 @@ html {
     rgba(50, 50, 50, 1) 50%,
     rgba(29, 29, 29, 1) 100%
   );
+}
+
+.footer {
+  a {
+    color: lighten(#4a4a4a, 5);
+    &:hover {
+      color: lighten(#4a4a4a, 10);
+    }
+  }
 }
 </style>

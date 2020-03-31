@@ -1,5 +1,8 @@
 const TerserPlugin = require("terser-webpack-plugin");
 const webpack = require("webpack");
+const fs = require("fs");
+const packageJson = fs.readFileSync("./package.json");
+const version = JSON.parse(packageJson).version || 0;
 
 const DEV = process.env.VUE_APP_DEV === "true";
 
@@ -52,6 +55,11 @@ module.exports = {
         /moment[/\\]locale$/,
         /^(?!.*(es-us|es-do)).*es.*$/
       ),
+      new webpack.DefinePlugin({
+        "process.env": {
+          PACKAGE_VERSION: '"' + version + '"',
+        },
+      }),
     ],
   },
 };
