@@ -30,9 +30,12 @@ export class EpisodesService {
       .offset(Pagination.getOffset(queryOptions));
 
     if (queryOptions.search) {
-      sql.where('episode.title LIKE :title', {
-        title: `%${queryOptions.search}%`,
-      });
+      sql.where(
+        'CONVERT(episode.title  USING utf8) LIKE _utf8 :title COLLATE utf8_general_ci',
+        {
+          title: `%${queryOptions.search}%`,
+        },
+      );
     }
 
     const [results, total] = await sql.getManyAndCount();
