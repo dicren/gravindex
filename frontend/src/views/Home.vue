@@ -11,7 +11,7 @@
           placeholder="¡Busca tu momento gravinero favorito!"
         />
         <span class="icon is-small is-right">
-          <i class="fas fa-search fa-fw"></i>
+          <font-awesome-icon icon="search" fixed-width />
         </span>
       </div>
     </div>
@@ -30,7 +30,7 @@
               </select>
             </div>
             <div class="icon is-small is-left">
-              <i class="fas fa-sort"></i>
+              <font-awesome-icon icon="sort" />
             </div>
           </div>
         </div>

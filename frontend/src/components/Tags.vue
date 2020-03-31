@@ -17,8 +17,9 @@
       v-if="!show && !loading"
       class="tag is-rounded is-success tag-add"
       @click="showNewTag()"
-      ><i class="fas fa-plus"></i
-    ></a>
+    >
+      <font-awesome-icon icon="plus" />
+    </a>
 
     <div
       class="field"
@@ -48,7 +49,7 @@
           @click="addTag()"
           :class="[{ 'is-loading': loading }, inputSize]"
         >
-          <i class="fas fa-plus"></i>
+          <font-awesome-icon icon="plus" />
         </button>
       </div>
       <div class="control" v-if="showHideButton">
@@ -57,7 +58,7 @@
           @click="show = false"
           :class="[{ 'is-loading': loading }, inputSize]"
         >
-          <i class="fas fa-times"></i>
+          <font-awesome-icon icon="times" />
         </button>
       </div>
     </div>

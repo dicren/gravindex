@@ -51,10 +51,10 @@
             }"
           >
             <span class="icon animated grow" :class="{ visible: !playing }">
-              <i class="fas fa-play fa-fw"></i>
+              <font-awesome-icon icon="play" fixed-width />
             </span>
             <span class="icon animated grow" :class="{ visible: playing }">
-              <i class="fas fa-pause fa-fw"></i>
+              <font-awesome-icon icon="pause" fixed-width />
             </span>
           </a>
         </div>
@@ -75,29 +75,32 @@
       <div class="">
         <!--
         <a class="has-text-info">
-          <i class="fas fa-comments"></i> <span>{{ clip.comments }}</span>
+          <font-awesome-icon icon="comments" /> <span>{{ clip.comments }}</span>
         </a>
         -->
         <a class="vote-button has-text-success" @click="vote(1)">
           <span class="icon" v-if="!voteLoading.up">
-            <i class="fas fa-thumbs-up"></i> <span>{{ clip.up }}</span>
+            <font-awesome-icon icon="thumbs-up" /> <span>{{ clip.up }}</span>
           </span>
           <span class="icon" v-else>
-            <i class="fas fa-spinner fa-spin"></i> <span>{{ clip.up }}</span>
+            <font-awesome-icon icon="spinner fa-spin" />
+            <span>{{ clip.up }}</span>
           </span>
         </a>
         <a class="vote-button has-text-danger" @click="vote(-1)">
           <span class="icon" v-if="!voteLoading.down">
-            <i class="fas fa-thumbs-down"></i> <span>{{ clip.down }}</span>
+            <font-awesome-icon icon="thumbs-down" />
+            <span>{{ clip.down }}</span>
           </span>
           <span class="icon" v-else>
-            <i class="fas fa-spinner fa-spin"></i> <span>{{ clip.down }}</span>
+            <font-awesome-icon icon="spinner fa-spin" />
+            <span>{{ clip.down }}</span>
           </span>
         </a>
       </div>
       <div class="">
         <a class="has-text-success" @click="share">
-          <i class="fas fa-share-square"></i>
+          <font-awesome-icon icon="share-square" />
         </a>
       </div>
 

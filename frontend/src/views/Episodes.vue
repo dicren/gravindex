@@ -13,7 +13,7 @@
               placeholder="Buscar capítulo"
             />
             <span class="icon is-small is-right">
-              <i class="fas fa-search fa-fw"></i>
+              <font-awesome-icon icon="search" fixed-width />
             </span>
           </div>
         </div>

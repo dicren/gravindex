@@ -29,7 +29,7 @@
           :disabled="1 === page"
           @click="goto(1)"
         >
-          <i class="fas fa-angle-double-left"></i>
+          <font-awesome-icon icon="angle-double-left" />
         </a>
       </li>
       <li>
@@ -38,7 +38,7 @@
           :disabled="1 === page"
           @click="goto(page - 1)"
         >
-          <i class="fas fa-angle-left"></i>
+          <font-awesome-icon icon="angle-left" />
         </a>
       </li>
 
@@ -69,7 +69,7 @@
           :disabled="lastpage === page"
           @click="goto(page + 1)"
         >
-          <i class="fas fa-angle-right"></i>
+          <font-awesome-icon icon="angle-right" />
         </a>
       </li>
       <li>
@@ -78,7 +78,7 @@
           :disabled="lastpage === page"
           @click="goto(lastpage)"
         >
-          <i class="fas fa-angle-double-right"></i>
+          <font-awesome-icon icon="angle-double-right" />
         </a>
       </li>
 

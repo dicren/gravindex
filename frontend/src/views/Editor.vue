@@ -129,7 +129,7 @@
                         Mover al punto actual
                       </span>
                       <span class="is-small is-hidden-tablet">
-                        <i class="fas fa-step-backward"></i>
+                        <font-awesome-icon icon="step-backward" />
                       </span>
                     </a>
                   </p>
@@ -144,7 +144,7 @@
                       data-tooltip="Ir al inicio del corte"
                       @click="seekInit"
                     >
-                      <i class="fas fa-step-backward"></i>
+                      <font-awesome-icon icon="step-backward" />
                     </a>
 
                     <a
@@ -158,11 +158,11 @@
                       ><span
                         class="icon animated grow"
                         :class="{ visible: !playing }"
-                        ><i class="fas fa-play fa-fw"></i></span
+                        ><font-awesome-icon icon="play" fixed-width /></span
                       ><span
                         class="icon animated grow"
                         :class="{ visible: playing }"
-                        ><i class="fas fa-pause fa-fw"></i></span
+                        ><font-awesome-icon icon="pause" fixed-width /></span
                     ></a>
 
                     <a
@@ -170,7 +170,7 @@
                       data-tooltip="Ir al 5 segundos antes del final del corte"
                       @click="seekEnd"
                     >
-                      <i class="fas fa-step-forward"></i>
+                      <font-awesome-icon icon="step-forward" />
                     </a>
                   </div>
                   <div class="buttons">
@@ -179,7 +179,7 @@
                       data-tooltip="Hacer zoom a la sección delimitada"
                       @click="setZoom()"
                     >
-                      <i class="fas fa-search-plus"></i>
+                      <font-awesome-icon icon="search-plus" />
                     </a>
 
                     <a
@@ -187,7 +187,7 @@
                       data-tooltip="Retrocede el zoom"
                       @click="setZoom(-10 * 60)"
                     >
-                      <i class="fas fa-search-minus"></i>
+                      <font-awesome-icon icon="search-minus" />
                     </a>
 
                     <a
@@ -195,7 +195,7 @@
                       data-tooltip="Reiniciar zoom"
                       @click="setZoom(0)"
                     >
-                      <i class="fas fa-search"></i>
+                      <font-awesome-icon icon="search" />
                     </a>
                   </div>
                   <div class="buttons">
@@ -204,7 +204,7 @@
                       data-tooltip="Retrocede 1 minuto"
                       @click="movePlay(-60)"
                     >
-                      <i class="fas fa-angle-double-left"></i>
+                      <font-awesome-icon icon="angle-double-left" />
                     </a>
 
                     <a
@@ -212,7 +212,7 @@
                       data-tooltip="Retrocede 10 segundos"
                       @click="movePlay(-10)"
                     >
-                      <i class="fas fa-angle-left"></i>
+                      <font-awesome-icon icon="angle-left" />
                     </a>
 
                     <a
@@ -220,7 +220,7 @@
                       data-tooltip="Avanza 30 segundos"
                       @click="movePlay(30)"
                     >
-                      <i class="fas fa-angle-right"></i>
+                      <font-awesome-icon icon="angle-right" />
                     </a>
                   </div>
 
@@ -310,7 +310,7 @@
                         Mover al punto actual
                       </span>
                       <span class="is-small is-hidden-tablet">
-                        <i class="fas fa-step-forward"></i>
+                        <font-awesome-icon icon="step-forward" />
                       </span>
                     </a>
                   </p>
@@ -400,7 +400,7 @@
               </div>
               <div>
                 <a class="has-text-success">
-                  <i class="fas fa-share-square"></i>
+                  <font-awesome-icon icon="share-square" />
                 </a>
               </div>
             </footer>

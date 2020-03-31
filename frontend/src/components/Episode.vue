@@ -32,7 +32,7 @@
       </div>
       <div class="">
         <a class="has-text-info" target="_blank" :href="episode.originalUrl">
-          <i class="fas fa-globe-europe"></i>
+          <font-awesome-icon icon="globe-europe" />
         </a>
       </div>
     </footer>
