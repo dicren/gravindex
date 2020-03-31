@@ -2,12 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Episode } from '../../database/entities/Episode';
 import { Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PaginationResults } from '../../queryOptions/paginationResults';
-import { PaginationResultInterface } from '../../queryOptions/PaginationResultsInterface';
-import { OptionBuilder } from '../../queryOptions/OptionBuilder';
+import { IPaginationResponse } from '../../common/DTO/IPaginationResponse';
+import { Pagination } from '../../common/helpers/Pagination';
 import { Clip } from '../../database/entities/Clip';
 import { Vote } from '../../database/entities/Vote';
-import { QueryOptionsDTO } from './DTO/QueryOptionsDTO';
+import { QueryOptionsDTO } from './DTO/request/QueryOptionsDTO';
+import { PaginationResponse } from '../../common/DTO/paginationResponse';
 
 @Injectable()
 export class EpisodesService {
@@ -22,26 +22,22 @@ export class EpisodesService {
 
   async getEpisodes(
     queryOptions: QueryOptionsDTO,
-  ): Promise<PaginationResultInterface<Episode>> {
-    let options = {
-      order: { date: 'DESC' },
-    };
-
-    if (queryOptions.limit || queryOptions.page) {
-      options = { ...options, ...OptionBuilder.pagination(queryOptions) };
-    }
+  ): Promise<IPaginationResponse<Episode>> {
+    const sql = this.episodeRepository
+      .createQueryBuilder('episode')
+      .addOrderBy('episode.date', 'DESC')
+      .limit(Pagination.getLimit(queryOptions))
+      .offset(Pagination.getOffset(queryOptions));
 
     if (queryOptions.search) {
-      // @ts-ignore
-      options.where = {
-        title: Like(`%${queryOptions.search}%`),
-      };
+      sql.where('episode.title LIKE :title', {
+        title: `%${queryOptions.search}%`,
+      });
     }
 
-    // @ts-ignore
-    const [results, total] = await this.episodeRepository.findAndCount(options);
+    const [results, total] = await sql.getManyAndCount();
 
-    return new PaginationResults({
+    return new PaginationResponse({
       results,
       total,
     });

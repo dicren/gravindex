@@ -5,9 +5,9 @@ import { Brackets, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Tag } from '../../database/entities/Tag';
 import { Vote } from '../../database/entities/Vote';
-import { CreateClipDTO } from './DTO/CreateClipDTO';
+import { CreateClipDTO } from './DTO/request/CreateClipDTO';
 import { Playback } from '../../database/entities/Playback';
-import { QueryOptionsDTO } from './DTO/QueryOptionsDTO';
+import { QueryOptionsDTO } from './DTO/request/QueryOptionsDTO';
 
 @Injectable()
 export class ClipsService {

@@ -10,10 +10,10 @@ import {
   Req,
 } from '@nestjs/common';
 import { ClipsService } from './clips.service';
-import { PaginationResultInterface } from '../../queryOptions/PaginationResultsInterface';
+import { IPaginationResponse } from '../../common/DTO/IPaginationResponse';
 import { Clip } from '../../database/entities/Clip';
-import { CreateClipDTO } from './DTO/CreateClipDTO';
-import { QueryOptionsDTO } from './DTO/QueryOptionsDTO';
+import { CreateClipDTO } from './DTO/request/CreateClipDTO';
+import { QueryOptionsDTO } from './DTO/request/QueryOptionsDTO';
 
 @Controller('clips')
 export class ClipsController {
@@ -24,7 +24,7 @@ export class ClipsController {
   @Get('/')
   async getClips(
     @Query() query: QueryOptionsDTO,
-  ): Promise<PaginationResultInterface<Clip>> {
+  ): Promise<IPaginationResponse<Clip>> {
     return await this.clipsService.getClips(query);
   }
 
