@@ -133,7 +133,7 @@ export default {
       }
     },
     resetForm() {
-      this.filters = { ...this.defaultQuery };
+      this.filters = { ...this.defaultQuery, ...{ tags: [] } };
     },
     addTag(value) {
       if (!this.filters.tags.includes(value)) {
