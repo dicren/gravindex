@@ -26,11 +26,11 @@
       </transition>
     </div>
 
-    <section class="section">
+    <footer class="footer">
       <div class="hero-foot has-text-centered">
         Todo el contenido de esta web es propiedad de gravina82.
       </div>
-    </section>
+    </footer>
   </div>
 </template>
 
