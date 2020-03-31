@@ -43,6 +43,15 @@
 
     <ul>
       <li>
+        <span class="has-text-weight-bold">1.1.1</span> - 31/03/2020
+        <ul>
+          <li>
+            Arreglado fallo al cambiar de página después de limpiar el filtro de
+            búsqueda en la biblioteca gravinera
+          </li>
+        </ul>
+      </li>
+      <li>
         <span class="has-text-weight-bold">1.1.0</span> - 31/03/2020
         <ul>
           <li>
