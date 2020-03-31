@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Episode } from '../../database/entities/Episode';
 import { Clip } from '../../database/entities/Clip';
 import { Brackets, Repository } from 'typeorm';
@@ -134,12 +138,17 @@ export class ClipsService {
   }
 
   async getClip(id: number) {
-    return await this.clipRepository.findOne({
+    const clip = await this.clipRepository.findOne({
       where: {
         id,
       },
       relations: ['episode', 'tags'],
     });
+    if (clip) {
+      return clip;
+    } else {
+      throw new NotFoundException();
+    }
   }
 
   async vote(id: number, value: number, ip: string) {
