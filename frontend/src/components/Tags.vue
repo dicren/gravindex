@@ -41,18 +41,6 @@
           ref="newtag"
         >
         </b-autocomplete>
-
-        <!--
-        <input
-          v-on:keyup.enter="addTag"
-          ref="newtag"
-          class="input"
-          :class="inputSize"
-          v-model="value"
-          type="text"
-          :placeholder="placeholder"
-        />
-        -->
       </div>
       <div class="control" v-if="showAddButton">
         <button
@@ -126,14 +114,22 @@ export default {
   data() {
     return {
       value: "",
-      autocompleteTags: [],
       allAutocompleteTags: [],
       loadingTags: false,
       isFetching: false,
       show: false,
     };
   },
-  computed: {},
+  computed: {
+    autocompleteTags() {
+      return this.allAutocompleteTags.filter(
+        (m) =>
+          removeAccents(m.toLowerCase()).includes(
+            removeAccents(this.value.toLowerCase())
+          ) && !this.tags.includes(m)
+      );
+    },
+  },
   created() {
     this.show = this.alwaysinput;
     if (this.show) {
@@ -176,9 +172,10 @@ export default {
         this.addTag();
       }
     },
-    async filterTags(text) {
-      this.isFetching = true;
+    async filterTags() {
       if (this.allAutocompleteTags.length === 0) {
+        this.isFetching = true;
+        let allTags;
         if (
           !localStorage.getItem("tags") ||
           parseInt(localStorage.getItem("tagstime")) <
@@ -188,11 +185,8 @@ export default {
             this.loadingTags = true;
             try {
               const request = await this.request("/tags/");
-              this.allAutocompleteTags = request.data;
-              localStorage.setItem(
-                "tags",
-                JSON.stringify(this.allAutocompleteTags)
-              );
+              allTags = request.data;
+              localStorage.setItem("tags", JSON.stringify(allTags));
             } catch (ex) {
               this.notifyError(ex);
             } finally {
@@ -201,15 +195,13 @@ export default {
             localStorage.setItem("tagstime", String(Date.now()));
           }
         } else {
-          this.allAutocompleteTags = JSON.parse(localStorage.getItem("tags"));
+          allTags = JSON.parse(localStorage.getItem("tags"));
         }
+
+        this.allAutocompleteTags = allTags.sort((a, b) => a.localeCompare(b));
+
+        this.isFetching = false;
       }
-      this.autocompleteTags = this.allAutocompleteTags.filter((m) =>
-        removeAccents(m.toLowerCase()).includes(
-          removeAccents(text.toLowerCase())
-        )
-      );
-      this.isFetching = false;
     },
   },
 };
