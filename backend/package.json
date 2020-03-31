@@ -5,7 +5,7 @@
   "author": "",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "rm -rf dist && tsc --AllowJs -p tsconfig.build.json && npm run copy",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "NODE_ENV=dev ts-node -r tsconfig-paths/register src/main.ts",
     "start:dev": "rm -rf dist && NODE_ENV=dev concurrently --handle-input \"wait-on dist/main.js && nodemon\" \"tsc --AllowJs -w -p tsconfig.build.json\" ",
@@ -17,7 +17,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "copy": "npm run copy:views",
+    "copy:views": "cpx 'src/views/**' 'dist/views'"
   },
   "dependencies": {
     "@nestjs/common": "^7.0.7",
@@ -29,6 +31,7 @@
     "cheerio": "^1.0.0-rc.3",
     "class-validator": "^0.11.1",
     "cookie-parser": "^1.4.5",
+    "hbs": "^4.1.0",
     "mysql2": "^2.1.0",
     "reflect-metadata": "^0.1.12",
     "retry-axios": "^2.1.2",
@@ -43,6 +46,7 @@
     "@types/node": "^13.9.5",
     "@types/supertest": "^2.0.8",
     "concurrently": "^5.1.0",
+    "cpx": "^1.5.0",
     "jest": "^25.2.4",
     "nodemon": "^2.0.2",
     "prettier": "^2.0.2",

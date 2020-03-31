@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Query,
+  Render,
   Req,
 } from '@nestjs/common';
 import { ClipsService } from './clips.service';
@@ -30,7 +31,13 @@ export class ClipsController {
 
   @Get('/:id')
   async getClip(@Param() params) {
-    return await this.clipsService.getClip(params.id);
+    return await this.clipsService.getClip(parseInt(params.id, 10));
+  }
+
+  @Get('/:id/rrss')
+  @Render('rrssClip')
+  async renderClip(@Param() params) {
+    return await this.clipsService.getClip(parseInt(params.id, 10));
   }
 
   @Post('/:id/play')
