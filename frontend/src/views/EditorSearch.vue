@@ -30,7 +30,7 @@
 </template>
 
 <script>
-import debounce from "lodash.debounce";
+import debounce from "lodash/debounce";
 import BAutocomplete from "buefy/src/components/autocomplete/Autocomplete";
 
 export default {

@@ -1,10 +1,16 @@
 import Axios from "axios";
-import _clone from "lodash.clonedeep";
+import _clone from "lodash/cloneDeep";
+import _isEqual from "lodash/isEqual";
+import { numberOrValue } from "@/helpers/numberOrValue";
 
 export const pageable = {
   data() {
     return {
       getUrl: null,
+      params: true, //¿USar los parámetros en la url?
+      queryEnable: true,
+      extraData: {},
+      firstTime: true,
       elements: null,
       timeout: 500,
       saveLimit: null,
@@ -17,7 +23,9 @@ export const pageable = {
         defaultPage: 1,
       },
       filters: {},
-
+      firstLoaded: false,
+      // Si los parámetros de la consulta son iguales a este se borran, porque está por defecto.
+      defaultQuery: {},
       pageableAux: {
         updateTimeout: null,
         canceltoken: null,
@@ -29,12 +37,27 @@ export const pageable = {
       },
     };
   },
+  computed: {
+    lastpage: function () {
+      if (this.pageable.totalElements === 0) return 1;
+      else return Math.ceil(this.pageable.totalElements / this.pageable.limit);
+    },
+  },
   watch: {
     filters: {
-      handler(/*niu, old*/) {
-        this.updateListLauncher();
+      handler() {
+        if (this.firstLoaded && this.queryEnable) {
+          //Para evitar recargar multiples veces al principio.
+          this.updateListLauncher();
+        }
       },
       deep: true,
+    },
+    getUrl() {
+      if (this.firstLoaded && this.queryEnable) {
+        //Para evitar recargar multiples veces al principio.
+        this.updateListLauncher(true);
+      }
     },
     "pageable.limit": function (val) {
       if (this.saveLimit) {
@@ -52,100 +75,161 @@ export const pageable = {
         this.resetForm();
       }
     },
+    elements(v) {
+      if (v) {
+        this.firstTime = false;
+      }
+    },
+    queryEnable(v) {
+      if (v) {
+        this.updateQuery();
+        this.updateList();
+      }
+    },
   },
   mounted() {
-    if (this.saveLimit !== false) {
-      if (this.saveLimit === null || this.saveLimit === undefined) {
-        this.saveLimit = this.getUrl;
-      } else if (this.saveLimit === true) {
+    if (this.saveLimit) {
+      if (this.saveLimit === true) {
         this.saveLimit = "_GLOBAL_";
+      } else {
+        this.saveLimit = this.getUrl;
       }
     }
 
-    this.pageable.limit =
-      parseInt(this.$route.query.limit) ||
-      this.getSavedLimit() ||
-      this.pageable.defaultLimit ||
-      10;
-    this.pageable.page =
-      parseInt(this.$route.query.page) || this.pageable.defaultPage || 1;
-
-    this.pageableAux.default.pageable = Object.assign({}, this.pageable);
-    this.pageableAux.default.filters = Object.assign({}, this.filters);
-    for (let filter in this.filters) {
-      let qv = this.$route.query[filter];
-      if (qv) {
-        if (Array.isArray(this.filters[filter])) {
-          if (Array.isArray(qv)) {
-            for (const q of qv) {
-              this.filters[filter].push(q);
-            }
-          } else {
-            this.filters[filter].push(qv);
-          }
-        } else {
-          this.filters[filter] = qv;
-        }
-      }
+    if (this.queryEnable) {
+      this.updateFromQuery();
     }
-    this.updateList();
   },
   methods: {
-    updateListLauncher() {
-      this.cancelRequest();
+    updateFromQuery() {
+      this.pageable.limit = this.params
+        ? parseInt(this.$route.query.limit) ||
+          this.getSavedLimit() ||
+          this.pageable.defaultLimit ||
+          10
+        : this.pageable.defaultLimit || 10;
+
+      this.pageable.page = this.params
+        ? parseInt(this.$route.query.page) || this.pageable.defaultPage || 1
+        : this.pageable.defaultPage || 1;
+
+      this.pageableAux.default.pageable = Object.assign({}, this.pageable);
+      this.pageableAux.default.filters = Object.assign({}, this.filters);
+      for (let filter in this.filters) {
+        let qv = this.$route.query[filter];
+        if (qv) {
+          if (Array.isArray(this.filters[filter])) {
+            if (Array.isArray(qv)) {
+              this.filters[filter] = [];
+              for (const q of qv) {
+                this.filters[filter].push(numberOrValue(q));
+              }
+            } else {
+              this.filters[filter].push(numberOrValue(qv));
+            }
+          } else {
+            this.filters[filter] = numberOrValue(qv);
+          }
+        }
+      }
+      this.updateList();
+    },
+    updateListLauncher(force) {
       this.pageableAux.updateTimeout = setTimeout(() => {
         this.pageable.forcePage = 1;
-        this.updateList();
+        this.updateList(force);
       }, this.timeout);
     },
     updateQuery() {
-      this.$router.replace({ query: this.filters });
-    },
-    updateList() {
-      if (this.getUrl) {
-        let filters = this.filters;
-        if (this.pageable.forcePage) {
-          filters.page = this.pageable.forcePage;
-        } else {
-          filters.page = this.pageable.page;
+      if (this.params) {
+        const urlFilters = {};
+        for (const filter in this.filters) {
+          if (
+            !_isEqual(this.filters[filter], this.defaultQuery[filter]) &&
+            !(
+              filter === "page" &&
+              this.filters[filter] === this.pageable.defaultPage
+            ) &&
+            !(
+              filter === "limit" &&
+              this.filters[filter] === this.pageable.defaultLimit
+            )
+          ) {
+            urlFilters[filter] = this.filters[filter];
+          }
         }
-        filters.limit = this.pageable.limit;
-
-        //Evito repetir peticiones al servidor comprobando si le estoy pasando el mismo filtro
-        if (
-          !this.pageableAux.lastFilter ||
-          JSON.stringify(this.pageableAux.lastFilter) !==
-            JSON.stringify(filters)
-        ) {
-          this.cancelRequest();
-
-          this.pageableAux.lastFilter = _clone(filters);
-
-          this.updateQuery();
-
-          this.elements = null;
-          let { req, cancelToken } = this.request(
-            this.getUrl,
-            "GET",
-            filters,
-            true
-          );
-          this.pageableAux.canceltoken = cancelToken;
-          req.then((res) => {
-            this.elements = res.data.results;
-            this.pageable.totalElements = res.data.total;
-          });
-          req.catch((ex) => {
-            if (Axios.isCancel(ex)) {
-              //console.log("Request canceled");
-            } else {
-              this.notifyError(ex);
-            }
-          });
-
+        this.$router.replace({ query: urlFilters });
+      }
+    },
+    updateList(force) {
+      if (this.getUrl) {
+        if (this.queryEnable) {
+          let filters = this.filters;
           if (this.pageable.forcePage) {
-            this.pageable.page = this.pageable.forcePage;
-            this.pageable.forcePage = null;
+            filters.page = this.pageable.forcePage;
+          } else {
+            filters.page = this.pageable.page;
+          }
+          filters.limit = this.pageable.limit;
+
+          //Evito repetir peticiones al servidor comprobando si le estoy pasando el mismo filtro
+          // console.log(JSON.stringify(this.pageableAux.lastFilter), JSON.stringify(filters));
+          if (
+            force ||
+            !this.pageableAux.lastFilter ||
+            JSON.stringify(this.pageableAux.lastFilter) !==
+              JSON.stringify(filters)
+          ) {
+            this.cancelRequest();
+
+            this.pageableAux.lastFilter = _clone(filters);
+
+            this.updateQuery();
+
+            this.elements = null;
+            let { req, cancelToken } = this.request(
+              this.getUrl,
+              "GET",
+              filters,
+              true
+            );
+            this.pageableAux.canceltoken = cancelToken;
+            req
+              .then((res) => {
+                this.elements = res.data.results;
+                this.pageable.totalElements = res.data.total;
+                for (const key in this.extraData) {
+                  if (
+                    // eslint-disable-next-line
+                        this.extraData.hasOwnProperty(key) &&
+                    // eslint-disable-next-line
+                        res.data.hasOwnProperty(key)
+                  ) {
+                    this.extraData[key] = res.data[key];
+                  } else {
+                    this.extraData[key] = undefined;
+                  }
+                }
+                this.firstLoaded = true;
+              })
+              .catch((ex) => {
+                if (Axios.isCancel(ex)) {
+                  //console.log("Request canceled");
+                } else {
+                  // noinspection JSUnresolvedVariable
+                  if (this.catchPageable) {
+                    // noinspection JSUnresolvedFunction
+                    this.catchPageable(ex);
+                  } else {
+                    this.notifyError(ex);
+                  }
+                }
+              });
+
+            if (this.pageable.forcePage) {
+              this.pageable.page = this.pageable.forcePage;
+              this.pageable.forcePage = null;
+            }
           }
         }
       } else {
@@ -161,7 +245,8 @@ export const pageable = {
       this.pageableAux.lastFilter = null;
       if (this.pageableAux.updateTimeout)
         clearTimeout(this.pageableAux.updateTimeout);
-      if (this.pageableAux.canceltoken) this.pageableAux.canceltoken.cancel();
+      if (this.pageableAux.canceltoken)
+        this.pageableAux.canceltoken.cancel("Cancel");
     },
     getSavedLimit() {
       if (this.saveLimit) {

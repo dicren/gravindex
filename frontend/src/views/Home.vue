@@ -110,7 +110,7 @@ export default {
     return {
       getUrl: "/clips/",
       saveLimit: true,
-      filters: {
+      defaultQuery: {
         search: "",
         order: "clip.createdAt",
         tags: [],
@@ -119,6 +119,7 @@ export default {
   },
   created() {
     this.pageable.defaultLimit = 12;
+    this.resetForm();
     this.$EventBus.$on("searchTag", (tag) => {
       this.filters.tags = [tag];
     });
@@ -132,11 +133,7 @@ export default {
       }
     },
     resetForm() {
-      this.filters = {
-        search: "",
-        order: "points",
-        tags: [],
-      };
+      this.filters = { ...this.defaultQuery };
     },
     addTag(value) {
       if (!this.filters.tags.includes(value)) {
