@@ -166,10 +166,10 @@ export const pageable = {
         if (this.queryEnable) {
           let filters = this.filters;
           if (this.pageable.forcePage) {
-            filters.page = this.pageable.forcePage;
-          } else {
-            filters.page = this.pageable.page;
+            this.pageable.page = this.pageable.forcePage;
+            this.pageable.forcePage = null;
           }
+          filters.page = this.pageable.page;
           filters.limit = this.pageable.limit;
 
           //Evito repetir peticiones al servidor comprobando si le estoy pasando el mismo filtro
@@ -225,11 +225,6 @@ export const pageable = {
                   }
                 }
               });
-
-            if (this.pageable.forcePage) {
-              this.pageable.page = this.pageable.forcePage;
-              this.pageable.forcePage = null;
-            }
           }
         }
       } else {
