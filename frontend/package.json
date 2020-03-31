@@ -5,9 +5,9 @@
   "author": "Dicren <me@dicren.com>",
   "scripts": {
     "serve": "vue-cli-service serve",
-    "serve:prod": "vue-cli-service serve --mode production",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "serve:prod": "vue-cli-service serve --mode production"
   },
   "dependencies": {
     "@creativebulma/bulma-tooltip": "^1.0.2",
@@ -30,6 +30,7 @@
     "vuex": "^3.1.3"
   },
   "devDependencies": {
+    "@fullhuman/postcss-purgecss": "^2.1.0",
     "@vue/cli-plugin-babel": "~4.2.3",
     "@vue/cli-plugin-eslint": "~4.2.3",
     "@vue/cli-service": "~4.2.3",
