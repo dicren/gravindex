@@ -85,7 +85,11 @@
           <font-awesome-icon icon="comments" /> <span>{{ clip.comments }}</span>
         </a>
         -->
-        <a class="vote-button has-text-success" @click="vote(1)">
+        <a
+          class="vote-button has-text-success"
+          @click="vote(1)"
+          v-if="clip.up !== undefined"
+        >
           <span class="icon" v-if="!voteLoading.up">
             <font-awesome-icon icon="thumbs-up" /> <span>{{ clip.up }}</span>
           </span>
@@ -94,7 +98,11 @@
             <span>{{ clip.up }}</span>
           </span>
         </a>
-        <a class="vote-button has-text-danger" @click="vote(-1)">
+        <a
+          class="vote-button has-text-danger"
+          @click="vote(-1)"
+          v-if="clip.up !== undefined"
+        >
           <span class="icon" v-if="!voteLoading.down">
             <font-awesome-icon icon="thumbs-down" />
             <span>{{ clip.down }}</span>
