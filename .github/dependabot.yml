@@ -1,0 +1,30 @@
+# Actualización de dependencias de gravindex.
+#
+# Los dos paquetes son workspaces de npm y comparten un único `package-lock.json`
+# en la raíz. Dependabot resuelve ese lockfile, así que va una sola entrada en
+# `/`: apuntar a `packages/backend` o a `packages/frontend` fallaría, porque no
+# hay lockfile propio en esas carpetas que analizar.
+#
+# Los saltos de versión mayor no van agrupados: cada uno llega en su propia PR y
+# se lee antes de mergear. Lo de `packages/` lo cubre igual, porque el lockfile es
+# el mismo.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 10
+    groups:
+      # Menores y parches en una sola PR: son los que se acumulan y no piden
+      # lectura. Así las 43 PRs sueltas de la vieja configuración no vuelven.
+      menores-y-parches:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
