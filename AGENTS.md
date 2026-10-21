@@ -58,7 +58,10 @@ packages are at **`2.0.0`**.
 | `eslint.config.mjs` | Flat config (eslint 10) with **two exports**: `base`, carrying no repo-layout paths, spread by each package; and the `default` used from the root, which ignores `packages/**`. **Bans `any` repo-wide**, and is not type-aware on purpose |
 | `.prettierrc`, `.prettierignore`, `.editorconfig` | Single quotes, trailing commas, 100 columns. `.prettierignore` skips `*.md`, `openapi.json`, MikroORM's snapshots and the generated API client |
 | `docker-compose.yml` | Compose project `gravindex`. `gravindex-db` (Postgres 16-alpine, ⚠️ **the database that ships to production — nothing in this repo wipes it**), `gravindex-api`, one-shot `gravindex-seed`, and a disposable `gravindex-test-db` behind a **`test`-profile** |
+| `docker-compose.prod.yml` | The stack that runs on `prod.dicren.com`: the same database and API, plus Caddy for TLS, with **no published ports except 80/443**. It pulls `ghcr.io/dicren/gravindex:${IMAGE_TAG}` instead of building, and keeps a one-shot `gravindex-seed` behind a **`seed` profile** |
 | `Dockerfile` | Multi-stage: `deps` → `build` (both workspaces) → `prod-deps` → `runtime`. The runtime image runs the backend, bakes `SPA_DIST_PATH` at the frontend build it copied in, and carries `psql` plus `packages/backend/seed/` for `gravindex-seed` to load (the SQL file is git-ignored, so a clone's image has none) |
+| `deploy/` | Production runbook (`README.md`), the `Caddyfile`, and `server/` — the deploy, watchdog and backup scripts plus their systemd units. Installed on the server by `deploy/server/install.sh` |
+| `.github/workflows/pipeline.yml` | The only workflow: lint + types + unit tests on every push/PR; on a `v*` tag, also Playwright, the GHCR image and the SSH deploy |
 | `.env` / `.env.example` | The **one** environment file for everything — see "Environment". `.env` is gitignored, the template is committed |
 | `test/` | `testdb/` (lifecycle for the disposable Postgres the e2e suite runs against), `e2e/` (Playwright) — see "Tests and validation" |
 | `docker/seed.sh` | The `gravindex-seed` entrypoint: loads the local `packages/backend/seed/gravindex.seed.sql` into a fresh `gravindex-db`, skips if clips already exist, and exits 0 without loading when the file is absent. No `--force`, no other data source |
@@ -572,13 +575,42 @@ the version is `2.0.0` in both `package.json`s and in `constants/version.ts`.
 ## Deployment
 
 The stack is **one image** — the backend serving the API and the built SPA —
-plus Postgres, behind whatever fronts it. Nothing external is fetched at boot
-(see "Running it").
+plus Postgres, behind Caddy. Nothing external is fetched at boot (see "Running
+it").
+
+Production is `prod.dicren.com` (`54.37.157.210`), public at
+**https://indice.gravina82.com**, running `docker-compose.prod.yml`.
+
+**A deploy is a tag.** Pushing `v2.0.1` runs the pipeline, which tests, builds
+and pushes `ghcr.io/dicren/gravindex:v2.0.1`, then SSHes into the server where
+the forced-command deploy script checks out that tag, writes it into
+`/opt/gravindex/.env`, pulls and restarts the stack, and waits for
+`/api/health`. If the new container does not become healthy, the script checks
+out the previously deployed tag and brings that back. A push to `develop` only
+runs the fast tests; it never deploys.
+
+⚠️ The server is a deployment target, not a working copy: `/opt/gravindex` sits
+on a **detached HEAD** at the deployed tag, and `deploy/server/install.sh`
+updates the root-owned scripts and units separately. The full runbook — logs,
+backups, restore, bootstrap, secrets — is `deploy/README.md`.
 
 Two things worth knowing: `VITE_API_BASE_URL` is **baked in at build time**, so
 an image is environment-specific unless it reads runtime config instead (the
 same-origin default makes this a non-issue); and no proxy in front of it needs to
 know anything about crawlers.
+
+Three pieces keep it up, and they cover different failures:
+
+| Mechanism | Failure it covers |
+|---|---|
+| `restart: unless-stopped` | The process exits |
+| `gravindex.service` + `live-restore` | The machine or the Docker daemon restarts |
+| `gravindex-watchdog.timer` | The container is **alive but unhealthy** — Docker records that verdict and does not act on it |
+
+Backups are a nightly `pg_dump` in `/var/backups/gravindex` (14 days), taken
+**inside** the database container so the credentials never reach the host. They
+are on the same machine: they survive a bad migration or a mistaken delete, not
+the loss of the VPS.
 
 ## Known gaps
 

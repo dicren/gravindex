@@ -1,0 +1,13 @@
+[Unit]
+Description=Nightly logical backup of the gravindex database
+Documentation=https://github.com/dicren/gravindex
+
+[Service]
+Type=oneshot
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/local/bin/gravindex-backup
+# One retry, half an hour later: a backup that failed because the database was
+# briefly busy is worth another attempt, and after that the timer waits for
+# tomorrow rather than looping.
+Restart=on-failure
+RestartSec=30min

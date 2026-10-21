@@ -1,0 +1,22 @@
+[Unit]
+Description=Gravindex production stack (Postgres + API + Caddy)
+Documentation=https://github.com/dicren/gravindex
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/gravindex
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/bin/docker compose --project-directory /opt/gravindex -f /opt/gravindex/docker-compose.prod.yml --env-file /opt/gravindex/.env up -d --remove-orphans
+# `stop`, not `down`: the containers and the network are kept, so a manual
+# `systemctl stop gravindex` does not throw away the runtime state and a start
+# afterwards is a plain `up`.
+ExecStop=/usr/bin/docker compose --project-directory /opt/gravindex -f /opt/gravindex/docker-compose.prod.yml --env-file /opt/gravindex/.env stop
+TimeoutStartSec=300
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

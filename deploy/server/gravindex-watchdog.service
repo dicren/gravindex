@@ -1,0 +1,9 @@
+[Unit]
+Description=Restart unhealthy gravindex containers
+Documentation=https://github.com/dicren/gravindex
+After=gravindex.service
+
+[Service]
+Type=oneshot
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/local/bin/gravindex-watchdog

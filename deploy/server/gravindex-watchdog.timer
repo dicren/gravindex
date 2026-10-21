@@ -1,0 +1,12 @@
+[Unit]
+Description=Check the gravindex healthchecks every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Persistent=false
+Unit=gravindex-watchdog.service
+
+[Install]
+WantedBy=timers.target

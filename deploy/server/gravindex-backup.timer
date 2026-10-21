@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the gravindex database backup every night
+
+[Timer]
+# Local time (the server runs on Europe/Madrid). 03:30 local is 01:30 UTC, well
+# before the 05:00 UTC ingestion job, so a dump never competes with a feed
+# import for I/O or database connections.
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=5min
+Persistent=true
+Unit=gravindex-backup.service
+
+[Install]
+WantedBy=timers.target

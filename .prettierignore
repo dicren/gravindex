@@ -19,3 +19,7 @@ openapi.json
 
 # Playwright output for the behaviour e2e suite.
 test/e2e/.artifacts
+
+# Caddy's config language has no Prettier parser. It is written by hand, with
+# tabs, and checked by `caddy validate` when the container starts.
+deploy/Caddyfile

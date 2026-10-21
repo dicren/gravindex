@@ -1,0 +1,165 @@
+# Production stack for gravindex — the one that runs on prod.dicren.com.
+#
+# It is deliberately a SECOND compose file rather than an override of
+# `docker-compose.yml`: the development file builds the image locally and
+# publishes the API and Postgres on host ports. Production pulls a prebuilt
+# image from GHCR, publishes nothing but Caddy's 80/443, and pins every service
+# to a restart policy.
+#
+#     docker compose -f docker-compose.prod.yml --env-file .env up -d
+#
+# `IMAGE_TAG` is the git tag being deployed (e.g. `v2.0.0`), written into `.env`
+# by `/usr/local/bin/gravindex-deploy` so that a reboot brings back the same
+# image. The `:?` markers are load-bearing: compose turns a missing variable
+# into an empty string, and an empty image tag fails much later and much less
+# clearly than at parse time.
+#
+# ⚠️ Nothing here mounts a host path except the Caddyfile and the seed
+# directory. The database lives in the named volume below and is backed up by
+# `/usr/local/bin/gravindex-backup`, not by copying files around.
+name: gravindex-prod
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+  # ────────────────────────────────────────────────────────────────────────────
+  # PostgreSQL — no published port on purpose. It is reachable only from the
+  # compose network, so the only way in is an SSH tunnel or `docker compose
+  # exec`, and the firewall never has to know about 5432.
+  # ────────────────────────────────────────────────────────────────────────────
+  gravindex-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    stop_grace_period: 30s
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # The application: API under /api and the built SPA around it, one process.
+  # Migrations run before it listens (see `DatabaseModule.onModuleInit`), so a
+  # healthy container is also a migrated database.
+  # ────────────────────────────────────────────────────────────────────────────
+  gravindex-api:
+    image: ghcr.io/dicren/gravindex:${IMAGE_TAG:?IMAGE_TAG is not set}
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      gravindex-db:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=3000
+      # Inside the compose network the database is a service name on its own
+      # port. `DB_HOST`/`DB_PORT` from `.env` describe a process on the HOST and
+      # must never reach this container.
+      - DB_HOST=gravindex-db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      # Caddy makes the SPA and the API share an origin, so CORS buys nothing.
+      - CORS=${CORS:-false}
+      # ⚠️ Absolute, because it becomes `og:url` and a crawler ignores a
+      # relative one. It cannot be derived from the request.
+      - PUBLIC_URL=${PUBLIC_URL:?PUBLIC_URL is not set}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is not set}
+      - INGEST_CRON=${INGEST_CRON:-off}
+      - INGEST_TIMEZONE=${INGEST_TIMEZONE:-UTC}
+      - INGEST_FEED_URL=${INGEST_FEED_URL:-https://gravina82.com/feed/}
+      - INGEST_TIMEOUT_MS=${INGEST_TIMEOUT_MS:-30000}
+      - WAVEFORM_ENABLED=${WAVEFORM_ENABLED:-true}
+      - WAVEFORM_MAX_PER_RUN=${WAVEFORM_MAX_PER_RUN:-5}
+      - WAVEFORM_FFMPEG_PATH=${WAVEFORM_FFMPEG_PATH:-ffmpeg}
+      - WAVEFORM_TIMEOUT_MS=${WAVEFORM_TIMEOUT_MS:-900000}
+    healthcheck:
+      # Node 24 has `fetch` as a global, and the runtime image has neither curl
+      # nor wget. `/api/health` is liveness: it touches no database on purpose.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      # The first boot applies every migration before it answers anything.
+      start_period: 60s
+    stop_grace_period: 30s
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # TLS and the public port. Caddy obtains and renews the certificate itself
+  # (HTTP-01 + TLS-ALPN), so there is no certbot timer and no certificate file
+  # on the host. The volume is what makes a restart reuse the certificate
+  # instead of asking Let's Encrypt for a new one.
+  # ────────────────────────────────────────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      gravindex-api:
+        condition: service_healthy
+    environment:
+      - PUBLIC_HOST=${PUBLIC_HOST:-indice.gravina82.com}
+    ports:
+      - '80:80'
+      - '443:443'
+      # HTTP/3. Harmless when a client does not use it.
+      - '443:443/udp'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # One shot, behind the `seed` profile: loads the data-only dump at `./seed/`
+  # into an EMPTY database and exits. `docker/seed.sh` refuses to touch a
+  # database that already has clips, so running it twice is safe.
+  #
+  #     docker compose -f docker-compose.prod.yml --profile seed run --rm gravindex-seed
+  #
+  # ⚠️ The seed file is git-ignored and never travels with an image built by
+  # CI. It is copied to the server by hand, exactly once, at bootstrap.
+  # ────────────────────────────────────────────────────────────────────────────
+  gravindex-seed:
+    image: ghcr.io/dicren/gravindex:${IMAGE_TAG:?IMAGE_TAG is not set}
+    profiles: [seed]
+    restart: 'no'
+    logging: *default-logging
+    depends_on:
+      gravindex-api:
+        condition: service_healthy
+    environment:
+      - DB_HOST=gravindex-db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - SEED_API_URL=http://gravindex-api:3000
+    volumes:
+      # The image already has `packages/backend/seed/` (with just `.gitkeep` in
+      # a CI build). Mounting the directory over it is what gives the script a
+      # snapshot to load; an empty directory makes it exit 0 without touching
+      # anything.
+      - ./seed:/app/packages/backend/seed:ro
+    entrypoint: ['gravindex-seed']
+
+volumes:
+  db:
+  caddy_data:
+  caddy_config:

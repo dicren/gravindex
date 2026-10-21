@@ -1,0 +1,36 @@
+# Caddy for gravindex in production.
+#
+# Automatic HTTPS: the certificate is obtained from Let's Encrypt on the first
+# start and renewed in the background. It lives in the `caddy_data` volume, so
+# a container restart reuses it instead of asking for a new one. There is no
+# certbot, no cron and no certificate file on the host.
+#
+# ⚠️ The host comes from the environment so the compose file, not this file, is
+# where a domain change is made. `{$VAR:default}` is Caddy's own syntax.
+#
+# There is deliberately no `email` in a global block: Caddy then uses Let's
+# Encrypt without expiry notifications. To receive them, add
+#
+#     {
+#         email you@example.com
+#     }
+#
+# at the top of this file.
+
+{$PUBLIC_HOST:indice.gravina82.com} {
+	encode zstd gzip
+
+	# ⚠️ `flush_interval -1` disables response buffering. `GET
+	# /api/episodes/:id/audio` streams an mp3 through this proxy, and a buffered
+	# response would stall playback until the upstream had finished sending the
+	# whole file.
+	reverse_proxy gravindex-api:3000 {
+		flush_interval -1
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# The version is not information a visitor needs.
+		-Server
+	}
+}
