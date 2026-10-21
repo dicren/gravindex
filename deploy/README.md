@@ -32,14 +32,22 @@ git push origin v2.0.1
 Eso dispara `.github/workflows/pipeline.yml`: lint, tipos, tests unitarios,
 Playwright completo, build de la imagen, push a `ghcr.io/dicren/gravindex:v2.0.1`
 y, al final, `ssh deploy@prod.dicren.com v2.0.1`. La web no cambia hasta que
-todas las puertas anteriores han pasado.
-
-El servidor hace `git fetch --tags && git checkout tags/v2.0.1`, escribe
-`IMAGE_TAG=v2.0.1` en `/opt/gravindex/.env`, descarga la imagen, levanta el stack
-y espera a que `/api/health` responda dentro del contenedor. Si no llega a
-`healthy` en cinco minutos, vuelve al tag anterior y el job falla.
+todas las puertas anteriores han pasado. Si el despliegue termina bien, se crea
+además la **release** en GitHub.
 
 **Un push a `develop` no despliega**: solo ejecuta la mitad rápida del pipeline.
+
+### La release
+
+La release se genera sola con la entrada del changelog que vive en
+`packages/frontend/src/vue/views/AboutView.vue`, no con la lista de commits. El
+job `release` extrae la entrada de la versión del tag con
+`deploy/changelog-notes.mjs` y crea (o actualiza, si se relanza el job) la
+release en GitHub.
+
+⚠️ Por eso, al subir la versión, hay que añadir su entrada en `AboutView.vue`
+antes de crear el tag. Si el tag no tiene entrada, el script sale con error y no
+se publica release: una release con las notas vacías es peor que un job rojo.
 
 ### Desplegar a mano
 

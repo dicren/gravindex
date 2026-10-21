@@ -61,7 +61,7 @@ packages are at **`2.0.0`**.
 | `docker-compose.prod.yml` | The stack that runs on `prod.dicren.com`: the same database and API, plus Caddy for TLS, with **no published ports except 80/443**. It pulls `ghcr.io/dicren/gravindex:${IMAGE_TAG}` instead of building, and keeps a one-shot `gravindex-seed` behind a **`seed` profile** |
 | `Dockerfile` | Multi-stage: `deps` → `build` (both workspaces) → `prod-deps` → `runtime`. The runtime image runs the backend, bakes `SPA_DIST_PATH` at the frontend build it copied in, and carries `psql` plus `packages/backend/seed/` for `gravindex-seed` to load (the SQL file is git-ignored, so a clone's image has none) |
 | `deploy/` | Production runbook (`README.md`), the `Caddyfile`, and `server/` — the deploy, watchdog and backup scripts plus their systemd units. Installed on the server by `deploy/server/install.sh` |
-| `.github/workflows/pipeline.yml` | The only workflow: lint + types + unit tests on every push/PR; on a `v*` tag, also Playwright, the GHCR image and the SSH deploy |
+| `.github/workflows/pipeline.yml` | The only workflow: lint + types + unit tests on every push/PR; on a `v*` tag, also Playwright, the GHCR image, the SSH deploy and a GitHub Release built from the web changelog |
 | `.env` / `.env.example` | The **one** environment file for everything — see "Environment". `.env` is gitignored, the template is committed |
 | `test/` | `testdb/` (lifecycle for the disposable Postgres the e2e suite runs against), `e2e/` (Playwright) — see "Tests and validation" |
 | `docker/seed.sh` | The `gravindex-seed` entrypoint: loads the local `packages/backend/seed/gravindex.seed.sql` into a fresh `gravindex-db`, skips if clips already exist, and exits 0 without loading when the file is absent. No `--force`, no other data source |
@@ -588,6 +588,12 @@ the forced-command deploy script checks out that tag, writes it into
 `/api/health`. If the new container does not become healthy, the script checks
 out the previously deployed tag and brings that back. A push to `develop` only
 runs the fast tests; it never deploys.
+
+After a successful deploy the pipeline publishes the **GitHub Release**, with
+notes taken from the version's entry in the web changelog
+(`packages/frontend/src/vue/views/AboutView.vue`) by
+`deploy/changelog-notes.mjs`. ⚠️ A tag without a changelog entry fails the
+release job on purpose; add the entry before tagging.
 
 ⚠️ The server is a deployment target, not a working copy: `/opt/gravindex` sits
 on a **detached HEAD** at the deployed tag, and `deploy/server/install.sh`

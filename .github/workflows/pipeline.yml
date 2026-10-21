@@ -181,3 +181,39 @@ jobs:
             -o ConnectTimeout=20 \
             -o ServerAliveInterval=30 \
             "$DEPLOY_USER@$DEPLOY_HOST" "$GITHUB_REF_NAME"
+
+  release:
+    name: Publish the GitHub release
+    # After the deploy, not before: a release is the record of a version that
+    # actually made it to the server. A failed deploy leaves the tag without a
+    # release, which is the honest state.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # ⚠️ The notes are the web's own changelog, not `--generate-notes`: the
+      # commit list is for developers, and the page already says what a version
+      # changed in the words its readers use. The extractor fails the job when
+      # the tag has no entry, so a release can never be published blank.
+      - name: Build the notes from the web changelog
+        run: node deploy/changelog-notes.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="Gravindex ${GITHUB_REF_NAME#v}"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --title "$TITLE" --notes-file release-notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$TITLE" \
+              --notes-file release-notes.md \
+              --latest
+          fi
