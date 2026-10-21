@@ -596,6 +596,18 @@ Real, deliberate, and recorded here so nobody rediscovers them as bugs:
   row.
 - **Clips with `end <= start` may exist in the catalogue.** The API refuses to
   create one, but it does not retro-fix the ones already there.
+- **`npm audit` still reports six high findings, and no upgrade fixes them.**
+  They are one chain: `braces@3.0.3` → `micromatch@4.0.8` → `fast-glob` /
+  `@boundaries/elements` → `@vue/eslint-config-typescript` /
+  `eslint-plugin-boundaries`. `braces` 3.0.3 **is** its latest release, so every
+  version that exists sits inside the advisory's range
+  (GHSA-vfj7-8cjw-p6xm, stack exhaustion on deeply nested patterns);
+  `npm audit fix --force` "solves" it by downgrading `eslint-plugin-boundaries`
+  to 1.1.1, which the flat config cannot use. Only ESLint reaches it, over glob
+  patterns this repo writes itself. ⚠️ Everything else `npm audit` used to
+  report — `js-yaml`, and the `sprintf-js`/`argparse` pair behind it — is pinned
+  out through `overrides` in the root `package.json`; revisit all of it when
+  `braces` ships a patch.
 - ✅ **All three** items on the README's wish list are built: the global
   persistent player with a queue, related clips on the clip view, and
   (2026-08-20) audio download — client-side, no server-side re-encode, see "The

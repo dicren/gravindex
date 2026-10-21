@@ -53,5 +53,13 @@
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0"
+  },
+  "overrides": {
+    "@hey-api/json-schema-ref-parser": {
+      "js-yaml": "^4.3.2"
+    },
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "^4.3.2"
+    }
   }
 }
