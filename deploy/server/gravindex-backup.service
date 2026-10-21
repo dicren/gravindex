@@ -5,6 +5,10 @@ Documentation=https://github.com/dicren/gravindex
 [Service]
 Type=oneshot
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# ⚠️ `-` so a server with no relay configured still runs the local backup: the
+# file holds SMTP_HOST/SMTP_USER/SMTP_PASSWORD/MAIL_FROM/MAIL_TO and lives at
+# 0600, and the script keeps a local copy when it is absent.
+EnvironmentFile=-/etc/gravindex/mail.env
 ExecStart=/usr/local/bin/gravindex-backup
 # One retry, half an hour later: a backup that failed because the database was
 # briefly busy is worth another attempt, and after that the timer waits for

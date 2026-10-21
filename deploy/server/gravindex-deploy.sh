@@ -29,7 +29,6 @@ REPO=/opt/gravindex
 STATE=/var/lib/gravindex
 COMPOSE_FILE="$REPO/docker-compose.prod.yml"
 ENV_FILE="$REPO/.env"
-IMAGE=ghcr.io/dicren/gravindex
 
 log() { printf '[%s] %s\n' "$(date -u +%FT%TZ)" "$*"; logger -t gravindex-deploy -- "$*" 2>/dev/null || true; }
 die() { log "ERROR: $*"; exit 1; }
@@ -87,6 +86,28 @@ wait_healthy() {
   return 1
 }
 
+# The API can be healthy while Caddy is not: a bad Caddyfile, a wiped
+# certificate volume, a port that never bound. Asking the public URL is the one
+# check that covers DNS → Caddy → TLS → API together, and it is what catches a
+# rate-limit directive that fails to parse before the rollout is called done.
+wait_public() {
+  local public_url
+  public_url="$(sed -n 's/^PUBLIC_URL=//p' "$ENV_FILE" | head -1)"
+  [ -n "$public_url" ] || return 0
+  for _ in $(seq 1 12); do
+    if curl -fsS --max-time 10 "${public_url%/}/api/health" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 5
+  done
+  return 1
+}
+
+wait_ready() {
+  wait_healthy || return 1
+  wait_public
+}
+
 log "deploying $TAG (previous: ${PREV:-none})"
 
 git fetch --tags --force --prune origin || die "git fetch failed"
@@ -101,13 +122,16 @@ set_image_tag "$TAG"
 # valid with this `.env`. A missing variable is a silent empty string otherwise.
 compose config -q || die "docker-compose.prod.yml does not validate"
 
-log "pulling $IMAGE:$TAG"
-compose pull gravindex-api || die "docker pull failed"
+log "pulling the images for $TAG"
+# ⚠️ ALL services, not just the API: the Caddy image is a custom build published
+# under the same tag, and leaving it behind would deploy a Caddyfile to a binary
+# that may not understand it.
+compose pull || die "docker pull failed"
 
 log "starting the stack"
 compose up -d --remove-orphans || die "docker compose up failed"
 
-if wait_healthy; then
+if wait_ready; then
   printf '%s\n' "$TAG" >"$STATE/deployed-tag"
   # On a fresh server this is what puts the stack under systemd (and therefore
   # under the watchdog, which refuses to act while the unit is inactive). On an
@@ -121,8 +145,8 @@ if wait_healthy; then
   exit 0
 fi
 
-log "the new API never became healthy — last 80 log lines follow"
-compose logs --tail=80 gravindex-api || true
+log "the new stack never became healthy — last 80 log lines follow"
+compose logs --tail=80 gravindex-api caddy || true
 
 if [ -z "$PREV" ] || [ "$PREV" = "$TAG" ]; then
   die "no previous tag to roll back to; the stack is left as it is"
@@ -131,9 +155,10 @@ fi
 log "rolling back to $PREV"
 git checkout -f "tags/$PREV" || die "rollback checkout failed"
 set_image_tag "$PREV"
+compose pull || log "could not pull the images for $PREV; using what is on disk"
 compose up -d --remove-orphans || die "rollback compose up failed"
 
-if wait_healthy; then
+if wait_ready; then
   systemctl enable gravindex.service >/dev/null 2>&1 || true
   systemctl start gravindex.service >/dev/null 2>&1 || true
   log "rollback to $PREV succeeded"

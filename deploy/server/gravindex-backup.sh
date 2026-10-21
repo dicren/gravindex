@@ -56,5 +56,18 @@ fi
 mv "$tmp" "$out"
 log "wrote $out ($(du -h "$out" | cut -f1))"
 
+# The off-site copy, when a relay is configured. ⚠️ The local dump is already on
+# disk either way: a failed send fails the unit so the timer retries and the
+# failure is visible in the journal, but it never removes the local file, and a
+# missing relay is not an error at all.
+if [ -n "${MAIL_TO:-}" ] && [ -n "${SMTP_HOST:-}" ]; then
+  if ! python3 /usr/local/bin/gravindex-send-backup "$out"; then
+    log "the dump is on disk, but it could not be emailed"
+    exit 1
+  fi
+else
+  log "no SMTP relay configured (MAIL_TO/SMTP_HOST); keeping the local copy only"
+fi
+
 find "$BACKUP_DIR" -type f -name 'gravindex-*.sql.gz' -mtime +"$KEEP_DAYS" -delete
 log "kept the last $KEEP_DAYS days, $(find "$BACKUP_DIR" -type f -name 'gravindex-*.sql.gz' | wc -l) file(s) on disk"

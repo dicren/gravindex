@@ -44,7 +44,7 @@ belongs to gravina82; the code is MIT.
 
 An **npm-workspaces monorepo** (`workspaces: ["packages/backend",
 "packages/frontend"]`), one root lockfile, one root `node_modules`. Both
-packages are at **`2.0.0`**.
+packages are at **`2.0.1`**.
 
 | Path | Stack | Role |
 |---|---|---|
@@ -60,8 +60,8 @@ packages are at **`2.0.0`**.
 | `docker-compose.yml` | Compose project `gravindex`. `gravindex-db` (Postgres 16-alpine, ⚠️ **the database that ships to production — nothing in this repo wipes it**), `gravindex-api`, one-shot `gravindex-seed`, and a disposable `gravindex-test-db` behind a **`test`-profile** |
 | `docker-compose.prod.yml` | The stack that runs on `prod.dicren.com`: the same database and API, plus Caddy for TLS, with **no published ports except 80/443**. It pulls `ghcr.io/dicren/gravindex:${IMAGE_TAG}` instead of building, and keeps a one-shot `gravindex-seed` behind a **`seed` profile** |
 | `Dockerfile` | Multi-stage: `deps` → `build` (both workspaces) → `prod-deps` → `runtime`. The runtime image runs the backend, bakes `SPA_DIST_PATH` at the frontend build it copied in, and carries `psql` plus `packages/backend/seed/` for `gravindex-seed` to load (the SQL file is git-ignored, so a clone's image has none) |
-| `deploy/` | Production runbook (`README.md`), the `Caddyfile`, and `server/` — the deploy, watchdog and backup scripts plus their systemd units. Installed on the server by `deploy/server/install.sh` |
-| `.github/workflows/pipeline.yml` | The only workflow: lint + types + unit tests on every push/PR; on a `v*` tag, also Playwright, the GHCR image, the SSH deploy and a GitHub Release built from the web changelog |
+| `deploy/` | Production runbook (`README.md`), the `Caddyfile`, `caddy/` (the custom Caddy image with the rate-limit module) and `server/` — the deploy, watchdog, backup, email and heartbeat scripts plus their systemd units. Installed on the server by `deploy/server/install.sh` |
+| `.github/workflows/pipeline.yml` | The only workflow: lint + types + unit tests on every push/PR; on a `v*` tag, also Playwright, **two** GHCR images (the app and the custom Caddy), the SSH deploy and a GitHub Release built from the web changelog |
 | `.env` / `.env.example` | The **one** environment file for everything — see "Environment". `.env` is gitignored, the template is committed |
 | `test/` | `testdb/` (lifecycle for the disposable Postgres the e2e suite runs against), `e2e/` (Playwright) — see "Tests and validation" |
 | `docker/seed.sh` | The `gravindex-seed` entrypoint: loads the local `packages/backend/seed/gravindex.seed.sql` into a fresh `gravindex-db`, skips if clips already exist, and exits 0 without loading when the file is absent. No `--force`, no other data source |
@@ -174,8 +174,9 @@ once and keeps in `localStorage`, sent as the **`X-Voter-Token`** header.
   is also **not** a browser fingerprint (that would be *more* personal data) and
   **not** the admin JWT. Clearing storage defeats it, and that is accepted — the
   catalogue holds 227 votes. The threat that scales is automated abuse, and the
-  defence for that is rate limiting, which stores nothing. ⚠️ **Nothing
-  rate-limits anything today** — see "Known gaps".
+  defence for that is rate limiting, which stores nothing. ⚠️ In production
+  Caddy rate-limits by client IP before the request reaches this process (see
+  "Deployment"); that is a proxy concern, and nothing about it is stored here.
 - ⚠️ **Losing the token is normal, not an error.** Cleared storage, private
   windows and second browsers all produce a fresh one; it just means a vote can
   be cast again. Never surface it, never try to recover it, never add a fallback
@@ -569,25 +570,26 @@ stopped being a 220 px slab with a white-backgrounded PNG on it; the art was
 re-exported with a real alpha channel and is a watermark now. ⚠️ The joke is
 unchanged, in all three places it appears.
 
-⚠️ **The `2.0.0` changelog entry lives in `AboutView.vue`**, written by hand, and
-the version is `2.0.0` in both `package.json`s and in `constants/version.ts`.
+⚠️ **The `2.0.1` changelog entry lives in `AboutView.vue`**, written by hand, and
+the version is `2.0.1` in both `package.json`s and in `constants/version.ts`.
 
 ## Deployment
 
-The stack is **one image** — the backend serving the API and the built SPA —
-plus Postgres, behind Caddy. Nothing external is fetched at boot (see "Running
-it").
+The stack is **two images** — the backend serving the API and the built SPA,
+and a Caddy built with the rate-limit module — plus Postgres. Nothing external
+is fetched at boot (see "Running it").
 
 Production is `prod.dicren.com` (`54.37.157.210`), public at
 **https://indice.gravina82.com**, running `docker-compose.prod.yml`.
 
 **A deploy is a tag.** Pushing `v2.0.1` runs the pipeline, which tests, builds
-and pushes `ghcr.io/dicren/gravindex:v2.0.1`, then SSHes into the server where
-the forced-command deploy script checks out that tag, writes it into
-`/opt/gravindex/.env`, pulls and restarts the stack, and waits for
-`/api/health`. If the new container does not become healthy, the script checks
-out the previously deployed tag and brings that back. A push to `develop` only
-runs the fast tests; it never deploys.
+and pushes `ghcr.io/dicren/gravindex:v2.0.1` **and**
+`ghcr.io/dicren/gravindex-caddy:v2.0.1`, then SSHes into the server where the
+forced-command deploy script checks out that tag, writes it into
+`/opt/gravindex/.env`, pulls every image, restarts the stack, and waits for
+`/api/health` **and** for the public URL to answer through Caddy. If either does
+not, the script checks out the previously deployed tag and brings that back. A
+push to `develop` only runs the fast tests; it never deploys.
 
 After a successful deploy the pipeline publishes the **GitHub Release**, with
 notes taken from the version's entry in the web changelog
@@ -605,30 +607,48 @@ an image is environment-specific unless it reads runtime config instead (the
 same-origin default makes this a non-issue); and no proxy in front of it needs to
 know anything about crawlers.
 
-Three pieces keep it up, and they cover different failures:
+### What keeps it up
 
 | Mechanism | Failure it covers |
 |---|---|
 | `restart: unless-stopped` | The process exits |
 | `gravindex.service` + `live-restore` | The machine or the Docker daemon restarts |
 | `gravindex-watchdog.timer` | The container is **alive but unhealthy** — Docker records that verdict and does not act on it |
+| `gravindex-heartbeat.timer` + healthchecks.io | The whole box, the DNS record, the certificate or Caddy — the checks above all live *on* the machine and cannot report it being gone |
 
-Backups are a nightly `pg_dump` in `/var/backups/gravindex` (14 days), taken
-**inside** the database container so the credentials never reach the host. They
-are on the same machine: they survive a bad migration or a mistaken delete, not
-the loss of the VPS.
+The heartbeat is a **dead man's switch**: it pings healthchecks.io every minute,
+but only when `https://indice.gravina82.com/api/health` answers `ok`. Silence
+raises an email. It is the only mechanism here that lives outside the server.
+
+### Rate limiting
+
+`deploy/Caddyfile` limits by client IP: `login` 5/min, `audio` 60/min, writes
+30/min and `/api` 300/min. ⚠️ **Requests, not bytes** — see "Known gaps".
+
+### Backups
+
+A nightly `pg_dump` lands in `/var/backups/gravindex` (14 days), taken **inside**
+the database container so the credentials never reach the host, and the same
+file is emailed to the address in `MAIL_TO` through an authenticated SMTP relay
+(`deploy/server/gravindex-send-backup.py`, configured in
+`/etc/gravindex/mail.env`). ⚠️ The destination is environment-only: no address
+is written anywhere in this repository. ⚠️ A relay is not optional: the
+domain's MX is a provider and the VPS has a generic PTR, so mail sent directly
+from it fails SPF. Both copies are a copy, not a backup system; neither survives
+losing the VPS *and* the mailbox, which is why the local one is still the
+primary.
 
 ## Known gaps
 
 Real, deliberate, and recorded here so nobody rediscovers them as bugs:
 
-- **Nothing rate-limits anything.** Abuse control belongs in a proxy, and there
-  is no proxy here. A conscious gap. ⚠️ **`GET
-  /episodes/:id/audio` inherits this fully** — it streams episode bytes on demand,
-  with no cap on the requested span and nothing limiting how often it can be called.
-  Deliberate, not an oversight: the endpoint only serves files already in the
-  `episode` table (not an open proxy), and closing this properly means the general
-  general rate limiting above, not a special case bolted onto one route.
+- **Rate limiting caps requests, not bytes.** Caddy limits by client IP in
+  production — `login` 5/min, `audio` 60/min, writes 30/min, `/api` 300/min, in
+  `deploy/Caddyfile` — which is what stops scanners, brute force and naive
+  loops. It does **not** cap bandwidth: `GET /episodes/:id/audio` still streams
+  whatever the requested span weighs, and there is no cap on that span.
+  ⚠️ **Closing that needs an edge (Cloudflare) or a bandwidth module**, not a
+  bigger request limit. Per-IP limits are also shared by everyone behind one NAT.
 - **`helmet`'s `contentSecurityPolicy` is off**, because the default blocks the
   inline bootstrap a Vite build emits. Turning it on is real work.
 - **`playback` is still write-only** — nothing reads the counter back. ⚠️ It is

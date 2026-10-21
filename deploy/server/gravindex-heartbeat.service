@@ -1,0 +1,12 @@
+[Unit]
+Description=Tell healthchecks.io that gravindex is answering
+Documentation=https://github.com/dicren/gravindex
+After=gravindex.service
+
+[Service]
+Type=oneshot
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# ⚠️ `-` so a missing file is not a failure: with no ping URL the script logs
+# and exits 0 rather than turning the timer red.
+EnvironmentFile=-/etc/gravindex/heartbeat.env
+ExecStart=/usr/local/bin/gravindex-heartbeat

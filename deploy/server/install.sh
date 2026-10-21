@@ -28,12 +28,28 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 install -m 0755 "$HERE/gravindex-deploy.sh" /usr/local/bin/gravindex-deploy
 install -m 0755 "$HERE/gravindex-watchdog.sh" /usr/local/bin/gravindex-watchdog
 install -m 0755 "$HERE/gravindex-backup.sh" /usr/local/bin/gravindex-backup
+install -m 0755 "$HERE/gravindex-send-backup.py" /usr/local/bin/gravindex-send-backup
+install -m 0755 "$HERE/gravindex-heartbeat.sh" /usr/local/bin/gravindex-heartbeat
 
 install -m 0644 "$HERE/gravindex.service" /etc/systemd/system/gravindex.service
 install -m 0644 "$HERE/gravindex-watchdog.service" /etc/systemd/system/gravindex-watchdog.service
 install -m 0644 "$HERE/gravindex-watchdog.timer" /etc/systemd/system/gravindex-watchdog.timer
 install -m 0644 "$HERE/gravindex-backup.service" /etc/systemd/system/gravindex-backup.service
 install -m 0644 "$HERE/gravindex-backup.timer" /etc/systemd/system/gravindex-backup.timer
+install -m 0644 "$HERE/gravindex-heartbeat.service" /etc/systemd/system/gravindex-heartbeat.service
+install -m 0644 "$HERE/gravindex-heartbeat.timer" /etc/systemd/system/gravindex-heartbeat.timer
+
+# The two environment files the units above expect. They hold secrets (the
+# healthchecks.io ping URL, the SMTP password) and are NOT part of this
+# repository; `deploy/README.md` documents what goes in each. Creating them
+# empty and root-only means the units start, log that they are unconfigured and
+# do nothing, rather than failing.
+install -d -m 0700 /etc/gravindex
+for file in heartbeat.env mail.env; do
+  if [ ! -e "/etc/gravindex/$file" ]; then
+    install -m 0600 /dev/null "/etc/gravindex/$file"
+  fi
+done
 
 systemctl daemon-reload
 
@@ -43,6 +59,7 @@ systemctl daemon-reload
 systemctl enable gravindex.service
 systemctl enable --now gravindex-watchdog.timer
 systemctl enable --now gravindex-backup.timer
+systemctl enable --now gravindex-heartbeat.timer
 
 echo "install.sh: installed. Timers:"
-systemctl list-timers --no-pager gravindex-watchdog.timer gravindex-backup.timer
+systemctl list-timers --no-pager gravindex-watchdog.timer gravindex-backup.timer gravindex-heartbeat.timer

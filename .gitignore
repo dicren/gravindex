@@ -85,3 +85,8 @@ packages/backend/src/ingest/__fixtures__/gravina82-feed.xml
 # votes and listening history, so it stays local. Only `.gitkeep` is tracked,
 # because the Dockerfile COPYs this directory.
 packages/backend/seed/*.sql
+
+# Bytecode from the one Python script in the tree
+# (`deploy/server/gravindex-send-backup.py`, which the host runs with python3).
+__pycache__/
+*.pyc

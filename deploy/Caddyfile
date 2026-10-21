@@ -5,6 +5,10 @@
 # a container restart reuses it instead of asking for a new one. There is no
 # certbot, no cron and no certificate file on the host.
 #
+# ⚠️ This is the CUSTOM Caddy image (`deploy/caddy/Dockerfile`), not the stock
+# one: `rate_limit` below is a third-party module (mholt/caddy-ratelimit) and
+# the official image does not carry it.
+#
 # ⚠️ The host comes from the environment so the compose file, not this file, is
 # where a domain change is made. `{$VAR:default}` is Caddy's own syntax.
 #
@@ -19,6 +23,69 @@
 
 {$PUBLIC_HOST:indice.gravina82.com} {
 	encode zstd gzip
+
+	# ──────────────────────────────────────────────────────────────────────────
+	# Rate limiting, per client IP and per minute.
+	#
+	# ⚠️ These are REQUESTS, not bytes. `GET /api/episodes/:id/audio` streams an
+	# mp3, so a client that asks for the whole file still moves whatever that
+	# file weighs; capping bandwidth needs an edge (Cloudflare) or a module this
+	# one is not. The limits stop scanners, brute force and naive loops, not a
+	# distributed attacker. See the "Known gaps" section of the root AGENTS.md.
+	#
+	# ⚠️ `{remote_host}` is the TCP peer. There is no proxy in front of Caddy, so
+	# it is the real client IP; putting Cloudflare in front would make every
+	# visitor share one bucket unless `trusted_proxies` were configured.
+	#
+	# ⚠️ A login request matches BOTH `login` and `api`, and the stricter zone is
+	# the one that decides, because every zone is evaluated.
+	# ──────────────────────────────────────────────────────────────────────────
+	rate_limit {
+		zone login {
+			match {
+				path /api/auth/login
+			}
+			key    {remote_host}
+			events 5
+			window 1m
+		}
+
+		# One download is 2-3 `Range` reads (the ID3 probe and the clip window),
+		# so 60 leaves room for ~20-30 downloads a minute from one address.
+		zone audio {
+			match {
+				path /api/episodes/*/audio
+			}
+			key         {remote_host}
+			events      60
+			window      1m
+			ipv6_prefix 64
+		}
+
+		# Every write: create a clip, vote, tag, play counter. Admin writes are
+		# behind the JWT and do not need their own zone.
+		zone writes {
+			match {
+				method POST
+				path /api/clips*
+			}
+			key    {remote_host}
+			events 30
+			window 1m
+		}
+
+		# The backstop for everything under /api, reads included. A page load
+		# makes ~5-10 calls, so 300 is generous for a household behind one NAT.
+		zone api {
+			match {
+				path /api/*
+			}
+			key         {remote_host}
+			events      300
+			window      1m
+			ipv6_prefix 64
+		}
+	}
 
 	# ⚠️ `flush_interval -1` disables response buffering. `GET
 	# /api/episodes/:id/audio` streams an mp3 through this proxy, and a buffered

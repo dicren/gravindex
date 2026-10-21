@@ -4,4 +4,4 @@
 // `outDir: dist` and `resolveJsonModule`, importing a file above `src/` moves
 // the inferred rootDir to the package root and the whole build lands in
 // `dist/src/`. Keep this in lockstep with `package.json`'s `version`.
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.0.1';

@@ -147,8 +147,24 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/gravindex:${{ github.ref_name }}
             ghcr.io/${{ github.repository_owner }}/gravindex:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
+
+      # The second image: Caddy plus the rate-limit module, published under the
+      # same tag as the app so the Caddyfile and the binary that reads it can
+      # never drift. Its own cache scope, or the two builds would fight over the
+      # same GHA cache entry.
+      - name: Build and push the Caddy image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./deploy/caddy
+          file: ./deploy/caddy/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/gravindex-caddy:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/gravindex-caddy:latest
+          cache-from: type=gha,scope=caddy
+          cache-to: type=gha,mode=max,scope=caddy
 
   deploy:
     name: Deploy to production

@@ -102,13 +102,18 @@ services:
     stop_grace_period: 30s
 
   # ────────────────────────────────────────────────────────────────────────────
-  # TLS and the public port. Caddy obtains and renews the certificate itself
-  # (HTTP-01 + TLS-ALPN), so there is no certbot timer and no certificate file
-  # on the host. The volume is what makes a restart reuse the certificate
-  # instead of asking Let's Encrypt for a new one.
+  # TLS, the public port and rate limiting. This is the CUSTOM Caddy build in
+  # `deploy/caddy/` — the stock image has no `rate_limit` — published under the
+  # same tag as the app so a release always pairs a Caddyfile with a binary that
+  # understands it.
+  #
+  # Caddy obtains and renews the certificate itself (HTTP-01 + TLS-ALPN), so
+  # there is no certbot timer and no certificate file on the host. The volume is
+  # what makes a restart reuse the certificate instead of asking Let's Encrypt
+  # for a new one.
   # ────────────────────────────────────────────────────────────────────────────
   caddy:
-    image: caddy:2-alpine
+    image: ghcr.io/dicren/gravindex-caddy:${IMAGE_TAG:?IMAGE_TAG is not set}
     restart: unless-stopped
     logging: *default-logging
     depends_on:

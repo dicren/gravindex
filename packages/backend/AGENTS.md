@@ -9,7 +9,7 @@ file only covers what is specific to this package.
 
 ## What this is
 
-A **NestJS 12 + MikroORM 7 (PostgreSQL)** application, version `2.0.0`. It is
+A **NestJS 12 + MikroORM 7 (PostgreSQL)** application, version `2.0.1`. It is
 three things in one process:
 
 1. the **REST API** under the `/api` prefix, published as OpenAPI;
@@ -326,10 +326,11 @@ way `open()` can see an abort, since the client-disconnect `abort()` is handed
 to the caller only after `open()` already returned), upstream `200` (ignoring
 the `Range`) → reforwarded as-is.
 
-⚠️ **No cap on the requested span, and nothing rate-limits this endpoint.**
-Deliberate — see the root `AGENTS.md`, "Known gaps". It can only ever serve
-files already named in the `episode` table, which is what keeps it from being
-an open proxy, but a single request can still ask for a whole episode (~90 MB).
+⚠️ **No cap on the requested span.** Deliberate — see the root `AGENTS.md`,
+"Known gaps". It can only ever serve files already named in the `episode` table,
+which is what keeps it from being an open proxy, but a single request can still
+ask for a whole episode (~90 MB). ⚠️ Caddy rate-limits the **requests** per IP
+in production (60/min on this path), never the bytes.
 
 **Tests**: `episode-audio.proxy.spec.ts` (pure unit — stubs `global.fetch`
 directly, since this proxy IS the network seam, unlike `EpisodeDownloader`/
@@ -746,11 +747,12 @@ file, is what pins behaviour.
 
 ## Known debt and deliberate gaps
 
-- **Nothing rate-limits anything.** Abuse control belongs in whatever proxy
-  fronts the app, and there is none — the backend serves the SPA itself. A conscious gap, not an oversight
-  to close here. ⚠️ **`GET /episodes/:id/audio` inherits this with no cap of its
-  own** — a single request can ask for a whole episode (~90 MB) — see "The audio
-  download proxy" above.
+- **Rate limiting caps requests, not bytes.** In production Caddy limits by
+  client IP before a request reaches this process (`deploy/Caddyfile`), which is
+  what stops scanners, brute force and loops. ⚠️ **`GET /episodes/:id/audio`
+  inherits the request limit and nothing else** — a single request can still ask
+  for a whole episode (~90 MB), because there is no cap on the span and no
+  bandwidth limit. See "The audio download proxy" above.
 - **`helmet`'s CSP is off** because the default blocks Vite's inline bootstrap.
   Turning it on is real work, to be done with the built `index.html` in front of
   you.
