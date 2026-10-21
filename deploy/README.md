@@ -51,14 +51,16 @@ se publica release: una release con las notas vacías es peor que un job rojo.
 
 ### Desplegar a mano
 
-Solo para una emergencia, desde una máquina con la clave de despliegue:
+Lo normal es relanzar el job: en GitHub, **Actions → el run del tag → Re-run
+failed jobs**. Si hace falta desde el servidor, como root:
 
 ```bash
-ssh deploy@prod.dicren.com v2.0.1
+/usr/local/bin/gravindex-deploy v2.0.1
 ```
 
-La clave de ese usuario tiene una orden forzada: lo único que puede ejecutar es
-`gravindex-deploy`, y el argumento tiene que ser un tag con forma de versión.
+La clave de `deploy` (la que usa Actions, guardada en los secretos del repo)
+tiene una orden forzada: lo único que puede ejecutar es `gravindex-deploy`, y el
+argumento tiene que ser un tag con forma de versión.
 
 ## Rollback
 
@@ -66,7 +68,8 @@ El despliegue ya lo hace solo si el healthcheck falla. Para volver atrás a
 propósito, se despliega el tag anterior:
 
 ```bash
-ssh deploy@prod.dicren.com v2.0.0
+# en el servidor, como root
+/usr/local/bin/gravindex-deploy v2.0.0
 ```
 
 El script guarda el tag desplegado en `/var/lib/gravindex/deployed-tag` y
