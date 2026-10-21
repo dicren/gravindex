@@ -80,7 +80,15 @@ test.describe('the 500 ms debounce', () => {
 
     await page.getByRole('button', { name: /Cargar más cortes/ }).click();
 
-    await expect.poll(() => api.clipLists().length, { timeout: 400 }).toBe(1);
+    // ⚠️ `>= 1`, not `=== 1`: the click asks for the next batch immediately, and
+    // landing those 24 rows can leave the sentinel inside the observer's margin
+    // again, which legitimately asks for one more (the header of
+    // `02-infinite-scroll.spec.ts` says the same). What proves "not debounced"
+    // is the 400 ms window — comfortably under the 500 ms filter debounce — and
+    // the page it commits, not the number of batches the observer follows it
+    // with. Counting them was a race, and it lost about one full-suite run in
+    // four on a warm machine.
+    await expect.poll(() => api.clipLists().length, { timeout: 400 }).toBeGreaterThanOrEqual(1);
     expect(api.clipLists()[0]?.search.get('page')).toBe('2');
   });
 });

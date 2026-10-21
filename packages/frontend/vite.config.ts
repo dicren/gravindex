@@ -176,6 +176,21 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      /**
+       * ⚠️ **Warm the lazily-imported screens, or the dev server reloads the
+       * page under whoever is using it.** Auto-imported Vuetify components are
+       * rewritten to `vuetify/components/VX`, and the dependency optimizer only
+       * discovers the ones reachable from the entry on its first scan: the first
+       * time a screen that needs another one is opened it logs "new
+       * dependencies optimized" and does a full reload, which throws away the
+       * navigation that caused it. The e2e suite hits this on every cold
+       * `node_modules`, in the first test that opens a clip (`VChip` and
+       * `VCombobox`, both first reached from `ClipView`), and stops hitting it
+       * once the cache is warm — so it reads as a random flake.
+       */
+      warmup: {
+        clientFiles: ['./src/main.ts', './src/vue/views/*.vue', './src/vue/views/*/*.vue'],
+      },
       // Dev only. In production the backend serves this build itself, so the
       // SPA and the API share an origin and no proxy exists at all.
       proxy: {
