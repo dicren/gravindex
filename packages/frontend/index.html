@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/gravicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#313131" />
+
+    <!--
+      ⚠️ The web manifest link is NOT written here: `vite-plugin-pwa` injects it
+      into the built file itself (see the plugin block in `vite.config.ts`), so
+      writing one here would ship two of them. The two lines below are the ones
+      it does not inject, because they are Apple's own and not part of the
+      manifest spec: iOS reads the home-screen icon and the label from the
+      document rather than from the manifest.
+
+      They sit after the charset declaration on purpose. The backend inserts its
+      per-route title and social block immediately behind it, and that
+      declaration has to keep landing inside the first 1024 bytes of the
+      document for the spec to honour it.
+
+      ⚠️ And, as in the comment further down, nothing here spells out any markup:
+      this file is read by a regex.
+    -->
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Gravina82" />
+
+    <!--
+      league-gothic, the app's title face, from Adobe Fonts (Typekit).
+
+      ⚠️ THIS STAYS A THIRD-PARTY LINK, and the reason is a licence, not
+      inertia. The typeface is SIL OFL 1.1 at source (The League of Moveable
+      Type), so self-hosting it is permitted — but ONLY from that source.
+      Adobe's Terms of Use forbid self-hosting or redistributing the files
+      `use.typekit.net` delivers, so copying what this stylesheet points at
+      would be a licence breach whatever the upstream licence says. The clean
+      swap is `@fontsource/league-gothic` (npm, OFL-1.1, an independent build of
+      the OFL original), which needs an install this repo has not taken on.
+      Until then: the link stays, and NOTHING in `src/vue/theme/` declares
+      an `@font-face` for it.
+
+      It is render-blocking and cross-origin, so the app must read correctly
+      when it never answers — `--grav-font-title` in `gravinero.css` carries a
+      real condensed-grotesque fallback chain, and a test asserts it.
+    -->
+    <link rel="preconnect" href="https://use.typekit.net" crossorigin />
+    <link rel="preconnect" href="https://p.typekit.net" crossorigin />
+    <link rel="stylesheet" href="https://use.typekit.net/jgx5pdq.css" />
+
+    <!--
+      ⚠️ The document title and the Open Graph / Twitter meta tags below are NOT
+      the ones served for clip and episode URLs: the backend replaces them in
+      this file when it serves the SPA (root CLAUDE.md, "Serving the SPA, and
+      social previews without a proxy"). Everyone gets the same HTML — do not
+      add a competing og:* tag here.
+
+      ⚠️ And note there is no markup written out inside this comment, on
+      purpose. The injector now masks comments before it matches, so a mention
+      of a tag here is harmless — but a comment is documentation, not a place to
+      spell out tags for the next tool that reads this file with a regex.
+    -->
+    <title>Índice gravinero</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

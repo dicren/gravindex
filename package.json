@@ -1,0 +1,57 @@
+{
+  "name": "gravindex",
+  "private": true,
+  "description": "Índice gravinero — monorepo (backend + frontend)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/backend",
+    "packages/frontend"
+  ],
+  "scripts": {
+    "dev": "run-p dev:backend dev:frontend",
+    "dev:backend": "npm run dev -w packages/backend",
+    "dev:frontend": "npm run dev -w packages/frontend",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "start": "docker compose up",
+    "stack:up": "docker compose up -d --build",
+    "stack:down": "docker compose down",
+    "stack:build": "docker compose build",
+    "stack:logs": "docker compose logs -f gravindex-api",
+    "db:up": "docker compose up -d gravindex-db",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f gravindex-db",
+    "db:psql": "docker compose exec gravindex-db psql -U ${DB_USER:-gravindex} -d ${DB_NAME:-gravindex}",
+    "db:migrate": "npm run build -w packages/backend && npm run migration:up -w packages/backend",
+    "db:export": "docker/export-seed.sh",
+    "test:db:up": "test/testdb/testdb.sh up",
+    "test:db:down": "test/testdb/testdb.sh down",
+    "test:db:reset": "test/testdb/testdb.sh reset",
+    "test:db:migrate": "test/testdb/testdb.sh migrate",
+    "test:db:seed": "test/testdb/testdb.sh seed",
+    "test:db:psql": "test/testdb/testdb.sh psql",
+    "test:backend": "DB_HOST=localhost DB_PORT=${TEST_DB_PORT:-5434} SERVER_PORT=3001 PUBLIC_URL=http://localhost:3001 npm run dev -w packages/backend",
+    "test:frontend": "BACKEND_URL=http://localhost:3001 npm run dev -w packages/frontend -- --port 5174",
+    "test:e2e": "test/e2e/run.sh",
+    "validate": "npm run lint && npm run type-check && npm test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "globals": "^17.9.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.66.0"
+  }
+}

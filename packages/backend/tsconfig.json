@@ -1,0 +1,36 @@
+{
+  // Extends the repo-wide baseline (target, strict, noUncheckedIndexedAccess…).
+  // Only what the two packages genuinely disagree on lives here — see the
+  // comment at the top of `tsconfig.base.json`.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // ⚠️ `module: node20` + `moduleResolution: node16`, not `commonjs`.
+    // `commonjs` implies the node10 resolution, which cannot read a package's
+    // `exports` map — and MikroORM 7 publishes its legacy (TS
+    // `experimentalDecorators`) decorators ONLY through one, at
+    // `@mikro-orm/decorators/legacy`. `node20` is the lowest ModuleKind that
+    // lets TypeScript `require()` an ESM package, which is what MikroORM 7 is.
+    //
+    // ⚠️ The emit is still CommonJS: under node16..nodenext the format is
+    // decided per file by the nearest package.json `type`, and this package
+    // declares none. `node dist/main.js` therefore keeps working.
+    "module": "node20",
+    "moduleResolution": "node16",
+
+    // Nest + MikroORM read decorator metadata at runtime.
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "declaration": false,
+    "removeComments": true,
+    "types": ["node", "jest"]
+  },
+  // ⚠️ `dist/` is deliberately not in `include`: the openapi generator imports
+  // the COMPILED AppModule at runtime (that is where the Swagger CLI plugin
+  // ran), but it is written against the sources, so nothing here needs a build
+  // to type-check.
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

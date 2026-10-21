@@ -1,0 +1,602 @@
+# CLAUDE.md
+
+Context for working in this repository. Read this before making changes.
+`packages/backend/` and `packages/frontend/` each have their own `CLAUDE.md` —
+read the relevant one too when working inside that folder.
+
+> **What belongs in THIS file.** The index and the cross-package contract: what
+> exists, where it lives, and the facts a reader of one side must know about the
+> other (HTTP API, data model, URLs, env vars). Not the "why" of a mechanism —
+> that belongs next to the code that executes it, or in that folder's
+> `CLAUDE.md`.
+>
+> **Keep it in sync** when a change moves something indexed here (API surface,
+> data model, routes, deployment contract).
+
+## What this project is
+
+**Gravindex** ("Índice gravinero") is a web app that indexes and plays **clips**
+(cuts) of the Spanish podcast [gravina82](https://gravina82.com). Anyone — no
+login, no account — can:
+
+- browse/search a library of clips, filter by tag, sort, and **queue** them into a
+  player that follows you across the whole site;
+- upvote a clip and add tags to it;
+- share that queue as a link, or a single clip by its permalink;
+- open an episode and cut a **new** clip from it with an in-browser editor
+  (pick start/end over the episode's audio, title it, tag it, publish it).
+
+Episodes are **not** hosted: the backend ingests episode metadata (title, cover,
+publish date, the URL of the `.mp3`) from the podcast's RSS feed, and the
+browser streams that remote mp3 directly, seeking to the clip's `start` and
+stopping at its `end`. A "clip" is therefore just `(episode, start, end, title)`
+— there is no audio file of its own anywhere.
+
+There is also a small **admin surface** behind a username/password login, for
+editing and deleting clips and tags. It is the only authenticated part of the
+system.
+
+It is a personal/community project by Dicren for the podcast's audience. Content
+belongs to gravina82; the code is MIT.
+
+## Repo layout
+
+An **npm-workspaces monorepo** (`workspaces: ["packages/backend",
+"packages/frontend"]`), one root lockfile, one root `node_modules`. Both
+packages are at **`2.0.0`**.
+
+| Path | Stack | Role |
+|---|---|---|
+| `packages/backend/` | NestJS 11, MikroORM 7 (PostgreSQL), Express | The `/api` REST API, the RSS ingestion job, **and serving the built SPA with injected Open Graph tags** |
+| `packages/frontend/` | Vue 3, Vuetify 4, Vite, Pinia + Pinia Colada, strict TypeScript | The whole UI: library, episode list, clip permalink, clip editor, admin |
+
+| Root file / folder | What it is |
+|---|---|
+| `package.json` | Private, unversioned root. `engines.node >= 24`. Fan-out scripts (`build`, `test`, `lint`, `type-check`), `dev` / `dev:backend` / `dev:frontend`, the `stack:*` and `db:*` docker helpers, `test:db:*` / `test:backend` / `test:frontend` for the disposable test stack, `test:e2e`, and **`validate`** |
+| `tsconfig.base.json` | The shared strict TS baseline each package extends. Deliberately omits `module`, `moduleResolution`, `outDir`, `types` and the decorator flags — the two packages genuinely disagree on those |
+| `eslint.config.mjs` | Flat config (eslint 10) with **two exports**: `base`, carrying no repo-layout paths, spread by each package; and the `default` used from the root, which ignores `packages/**`. **Bans `any` repo-wide**, and is not type-aware on purpose |
+| `.prettierrc`, `.prettierignore`, `.editorconfig` | Single quotes, trailing commas, 100 columns. `.prettierignore` skips `*.md`, `openapi.json`, MikroORM's snapshots and the generated API client |
+| `docker-compose.yml` | Compose project `gravindex`. `gravindex-db` (Postgres 16-alpine, ⚠️ **the database that ships to production — nothing in this repo wipes it**), `gravindex-api`, one-shot `gravindex-seed`, and a disposable `gravindex-test-db` behind a **`test`-profile** |
+| `Dockerfile` | Multi-stage: `deps` → `build` (both workspaces) → `prod-deps` → `runtime`. The runtime image runs the backend, bakes `SPA_DIST_PATH` at the frontend build it copied in, and carries `psql` plus `packages/backend/seed/` for `gravindex-seed` to load (the SQL file is git-ignored, so a clone's image has none) |
+| `.env` / `.env.example` | The **one** environment file for everything — see "Environment". `.env` is gitignored, the template is committed |
+| `test/` | `testdb/` (lifecycle for the disposable Postgres the e2e suite runs against), `e2e/` (Playwright) — see "Tests and validation" |
+| `docker/seed.sh` | The `gravindex-seed` entrypoint: loads the local `packages/backend/seed/gravindex.seed.sql` into a fresh `gravindex-db`, skips if clips already exist, and exits 0 without loading when the file is absent. No `--force`, no other data source |
+| `docker/export-seed.sh` | `npm run db:export` — snapshots the live `gravindex-db` into that local seed. Manual, human-run |
+| `packages/backend/seed/` | The local seed (`gravindex.seed.sql`) a fresh main database loads from. Git-ignored, so only `.gitkeep` is tracked (the Dockerfile `COPY`s the directory). Generated by `db:export`, never hand-edited, never committed: it carries third-party episode text and the community's activity |
+
+## How the two halves talk
+
+The frontend is a **pure SPA**; it never server-renders. Its HTTP client is
+**generated from the backend's OpenAPI document** (`@hey-api/openapi-ts`), so
+there are no hand-written endpoint strings anywhere in it.
+
+The API base URL is `VITE_API_BASE_URL`, and **empty — the default — means same
+origin**. That is what production wants (the backend serves both the SPA and the
+API) and what split dev wants too, because the Vite dev server proxies `/api` to
+the backend. Set an absolute origin only to bypass that proxy, which then needs
+`CORS=true` on the backend.
+
+**The contract file is `packages/backend/openapi.json`**, and it is committed.
+Regenerate it with `npm run openapi -w packages/backend`, then regenerate the
+client with `npm run generate:api -w packages/frontend`. ⚠️ Changing an endpoint
+without doing both leaves a client that lies about the server.
+
+### HTTP API (all under the `/api` global prefix)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/health` | Liveness + version. Touches no database |
+| `GET` | `/clips` | Query: `page` (1-based), `limit` (def. 10, **max 100**), `order`, `search`, `tags` (repeatable). Returns `{ results, total }`, each row with `up` and `points` (**numbers, and the same number**), its episode and its tags |
+| `GET` | `/clips/:id` | Clip + `episode` + `tags` + `up`. ⚠️ **No `points`** — see "Vote counts" below |
+| `GET` | `/clips/:id/related` | Up to **six** clips sharing a tag, ordered by shared tags, then `up`, then id. A bare array of `GET /clips` rows; empty for a clip with no tags |
+| `POST` | `/clips` | Body `{ start, end, title, tags: string[], episode: id }`. `X-Voter-Token` optional |
+| `POST` | `/clips/:id/play` | Fire-and-forget play counter. Returns `{ id }`. **Stores no identity at all** |
+| `POST` | `/clips/:id/vote/:value` | `value` is `1`, and **only** `1`. `X-Voter-Token` **required**. ⚠️ **201** — see below |
+| `POST` | `/clips/:id/tag/:value` | `409 Conflict` `"Tag repeated"` if the pair already exists. `X-Voter-Token` optional |
+| `GET` | `/episodes` | Query: `page`, `limit`, `search` (⚠️ **title only**), `withClips`. Rows carry `clipCount` |
+| `GET` | `/episodes/:id` | Episode + `clips` + `clips.tags`, each clip carrying `up`. ⚠️ **Never `points`** |
+| `GET` | `/episodes/:id/waveform` | Query: `from`, `to` (seconds, both optional), `points` (max 2000). Returns `{ from, to, points, peaks }`, `peaks` base64. ⚠️ **200 with an empty `peaks` for an episode not measured yet — never a 404 for that** |
+| `GET` | `/episodes/:id/audio` | ⚠️ **Binary, not JSON.** A same-origin passthrough to `episode.file`: forwards the incoming `Range` verbatim and streams the upstream `audio/mpeg` response back untouched — no audio processing in this process. Exists only because gravina82.com sends no CORS headers; see "The UI" below for why. No `Range` serves the whole file. `502`/`504` on an upstream failure/timeout |
+| `GET` | `/tags` | Flat array of `{ tag, count }`, in **code-point order** |
+| `POST` | `/auth/login` | `{ username, password }` → `{ token, … }`. **200**, not 201. One failure shape for every cause |
+| `GET` | `/admin/me` | Is this token still good? Bearer JWT, as all `/admin/*` |
+| `GET`·`PATCH`·`DELETE` | `/admin/clips/:id` | Read / edit / hard-delete a clip (`204` on delete) |
+| `PATCH`·`DELETE` | `/admin/clips/:id/tags` | Rename / remove one tag. ⚠️ The tag is a **query parameter**, never a path segment |
+
+Interactive docs at `/api/docs` (Swagger UI).
+
+Four facts that are pinned by tests:
+
+- ⚠️ **A repeated vote answers HTTP `201`**, not 200 and not an HTTP error, with
+  `{ add: 0, delete: 0, error: 'you have already voted' }`. It is Nest's POST
+  default, never overridden, and **the frontend branches on that exact string**.
+  ⚠️ Note the asymmetry: a repeated **tag** really is a `409`. The two write
+  paths disagree with each other and **both behaviours are the specification**.
+  ⚠️ `delete` is always `0`; the field survives only because it is part of the
+  response shape.
+- ⚠️ **The tag filter's wire format is `tags[]=`**, the shape of every filter
+  link ever shared. The backend accepts **both** `tags` and `tags[]` and treats
+  them identically; the generated client sends the canonical `tags`.
+- ⚠️ **`search` and `tags[]` interact.** With a search present, a clip satisfies
+  `tags[]=X` only if the search matched its title, its episode's title, or tag X
+  itself: the search narrows the tag rows *before* the tag filter sees them.
+  **This is deliberate**; the mechanism and the measured numbers are in
+  `packages/backend/CLAUDE.md`. Making the two filters independent is a
+  **product decision**, not a cleanup.
+- ⚠️ **`GET /tags` is code-point order**, pinned with an explicit
+  `collate "C"`. Without it the result reorders under a different Postgres
+  locale, and every capital-vs-lowercase and accented tag lands somewhere else.
+  The library's filter re-sorts the 102 rows **by count, in the browser** —
+  the wire order is the one pinned by a test.
+
+`order` values: `points` (default), `clip.createdAt`, `episode.date`, always
+descending with an id tiebreak. Anything else is a **400**: it is a whitelist and
+never interpolated into SQL.
+
+### Vote counts are not a column, and there is only one of them
+
+`up` and `points` are **not** persisted; they are aggregated from the `vote`
+table at read time and attached to the response DTO.
+
+⚠️ **`up` is the only vote.** The endpoint answers 400 to `-1`, and the whole
+product has one vote button: `up` is the number of people who pressed it.
+
+What each endpoint carries, and why they differ:
+
+| Endpoint | `up` | `points` |
+|---|---|---|
+| `GET /clips` | yes | yes — **the same number**, kept because `order=points` is in shared links |
+| `GET /clips/:id` | yes | no |
+| `GET /clips/:id/related` | yes | yes (they are `GET /clips` rows) |
+| `GET /episodes/:id` | yes | never has |
+
+⚠️ **`up` on `GET /clips/:id` is deliberate.** The clip permalink and the global
+player both draw a vote count for a clip opened by URL, and there is no other
+source for it. Anything that changes this must change both halves.
+
+### Identity: an anonymous token
+
+**No IP is stored anywhere.** Identity is a random UUID the client generates
+once and keeps in `localStorage`, sent as the **`X-Voter-Token`** header.
+
+- **Required on `POST /clips/:id/vote/:value`** — the dedup is a unique
+  constraint on `(clip, token)`, and Postgres does not collide NULLs, so a null
+  token would make every repeat vote succeed silently. Missing → 400.
+- **Optional** on `POST /clips` and `POST /clips/:id/tag/:value`, where it is
+  only a moderation trail. Missing → stored as NULL.
+- **`playback` has no identity column at all.**
+- ⚠️ It is **client-supplied and therefore spoofable**: a deduplication hint,
+  never proof of who anyone is, and nothing in the admin surface may read it. It
+  is also **not** a browser fingerprint (that would be *more* personal data) and
+  **not** the admin JWT. Clearing storage defeats it, and that is accepted — the
+  catalogue holds 227 votes. The threat that scales is automated abuse, and the
+  defence for that is rate limiting, which stores nothing. ⚠️ **Nothing
+  rate-limits anything today** — see "Known gaps".
+- ⚠️ **Losing the token is normal, not an error.** Cleared storage, private
+  windows and second browsers all produce a fresh one; it just means a vote can
+  be cast again. Never surface it, never try to recover it, never add a fallback
+  identifier to make it stickier.
+- ⚠️ **There is no IP column.** Votes, clips and tags carry the token instead,
+  so the database holds no personal data. A row without a token (the column is
+  nullable) does not block a repeat vote; that is noise across 227 votes.
+
+## Data model (PostgreSQL)
+
+MikroORM entities in `packages/backend/src/database/entities/`, schema built by
+**real migrations** in `.../migrations/`. ⚠️ **`synchronize` stays off**: a
+schema change is `npm run build && npm run migration:create`.
+
+```
+episode 1──n clip 1──n vote        (unique on (clip, token))
+                 1──n playback     (append-only counter, no identity column)
+                 1──n tag          (composite PK: clip + tag string)
+user                               (admin accounts only)
+```
+
+- **episode** — `id`, `title`, `cover`, `file` (the remote mp3 URL),
+  `originalUrl` (the ingestion dedup key), `date` (`timestamptz`, UTC),
+  `duration` (seconds, **nullable permanently**), `waveform` (`bytea`,
+  nullable — the measured audio waveform, `packages/backend/src/waveform/`;
+  see that section for the format and why nothing else touches it),
+  `description` (lazy, never surfaced in the UI).
+- **clip** — `id`, `title`, `start`, `end` (both **seconds, integers**), FK
+  `episode`, plus `token` and `createdAt` (lazy).
+- **tag** — free text, no tag table of its own: a tag *is* the `(clip, tag)`
+  pair. Rename and delete exist **only** in the admin surface.
+- **vote** — `value` is `+1`, and **only** `+1`. One vote per `(clip, token)`.
+  ⚠️ The column still allows a `-1` no endpoint accepts.
+- **playback** — write-only; nothing in the app reads it back yet.
+- **user** — `username`, `passwordHash` (bcrypt), `createdAt`. Nothing else: no
+  email, no last-login, no IP.
+
+⚠️ **Ids are public URLs.** `https://indice.gravina82.com/<id>` is a clip
+permalink people share, and episode ids ride inside `/episode/<id>-<slug>`. The
+ids are kept verbatim, gaps included: **clip ids 175 and 176 do not exist and
+must keep 404ing**. Ids are never reused — deleting a clip through the admin
+surface leaves its id dead, because Postgres sequences do not go backwards.
+
+**Scale**: a small community catalogue of hundreds of episodes and clips. Small
+enough that no query here needs to be clever, and small enough that a
+sequential-scan search is invisible. Do not design for volume this project does
+not have.
+
+⚠️ **All 102 tags are exactly what they look like** — no leading space, no
+trailing space, on any of the 382 rows. What is true is that **a tag is matched byte for byte**, so nothing may trim, fold or
+case-normalise one on its way into `?tags[]=`.
+
+## Frontend routes
+
+| Path | Name | View |
+|---|---|---|
+| `/` | `home` | The library: search + tag filter + sort + an **infinite** list of clip rows |
+| `/episodes/:page?` | `episodes` | Episode rows. ⚠️ The `:page?` param is vestigial and unused — the list is infinite and nothing paginates in the URL |
+| `/episodes/calendario/:year?` | `episodesCalendar` | The same episode list drawn by date — `EpisodesView` renders it and branches on `route.name`, the way `/creator` renders `HomeView`. ⚠️ **The year is a PATH segment**, not a query parameter, and the filters ride in the query beside it |
+| `/episode/:title` | `episode` | The episode **and** its clips: a map of the whole episode's waveform with the published clips drawn on it, one transport, and the list. ⚠️ Since 2026-08-26 it also carries **`Mis momentos`** — the visitor's own marks, over the wave and listed under it. `:title` is `"<id>-<slug>"` and **only the leading integer is parsed** |
+| `/creator` | `creatorSearch` | It renders `HomeView` and opens the floating episode-search overlay over it; the route exists so a direct link and browser-back work |
+| `/creator/:title` | `creator` | The clip editor. ⚠️ Takes `?start`, `?end` and `?moment` since 2026-08-26 — the window a marked moment opens it on, and which mark it came from |
+| `/cola` | `queue` | The play queue: reorder, remove, share by link |
+| `/about` | `about` | Static page + hand-written changelog |
+| `/admin/login` | `adminLogin` | The only unguarded admin route |
+| `/admin` | `adminClips` | Admin clip list, behind `meta.requiresAdmin` |
+| `/admin/clips/:id` | `adminClip` | Edit/delete one clip and its tags |
+| `/error/404`, `/error` | `error404`, `errorUnknown` | Real routes, with real URLs |
+| `/:id` | `clip` | Clip permalink. ⚠️ Catch-all-ish: any single unmatched segment lands here |
+| `/:pathMatch(.*)*` | `E404` | Renders the 404 **where it is**, without redirecting |
+
+All views are lazy-loaded. History mode is on, so **the server must serve
+`index.html` for unknown paths** — which the backend does itself.
+
+⚠️ **`/cola` carries a public URL shape in `?c=`.** A shared queue travels as
+base62 clip ids, two characters each, up to 50 clips — the format is frozen the
+moment somebody sends one. It is in
+`packages/frontend/src/vue/utils/queue-code.ts` with the arithmetic that fixes
+its limits.
+
+⚠️ **The queue can hold a WHOLE EPISODE**, and two consequences reach this
+file. `localStorage`'s `gravindex.queue` stores **kinded keys** (`c12` a clip,
+`e93` an episode) rather than bare ids, and still reads the older
+`{ ids: number[] }` shape as clips so that a stored queue is not emptied.
+⚠️ **It also stores `at`, the position inside the item it points at** — seconds
+into that clip or episode, so closing the tab half-way through a three-hour
+episode and coming back tomorrow presses play and carries on. The length of what
+plays here is what makes the position worth keeping, and the invariant that keeps
+it honest is that **`at` always describes `keys[index]`**, written in the same
+call. Like the queue itself it never reaches the server: see
+`packages/frontend/CLAUDE.md`, "Where you were listening".
+And **an episode cannot travel in a `?c=` link** — two base62 characters carry an
+id and nothing that says which kind it is — so a shared queue carries the clips
+and leaves the episode behind, which `/cola` says out loud before the link is
+copied. Widening the format would break every link already in the wild; that is
+the trade that was taken.
+
+### Social previews
+
+⚠️ **There is no reverse proxy and no `User-Agent` detection anywhere.** The
+backend serves the built SPA and **injects the Open Graph / Twitter meta tags
+into `index.html` itself** when the requested path is a clip (`/:id`) or an
+episode (`/episode/:slug`). Everyone — browser and crawler alike — receives the
+same HTML; the browser ignores the tags and boots the SPA as usual.
+
+Crawlers and visitors receive the same HTML, so the tags are testable with `curl`
+and no bot list is involved. There is no separate social-preview page; the
+mechanics (escaping, where the block is inserted, why a clip that does not exist
+still gets a 200) are in `packages/backend/CLAUDE.md`, and the check is
+`test/e2e/specs/09-meta-tags.spec.ts`.
+
+### The PWA (2026-08-27)
+
+The site is **installable** and **keeps itself on the newest build without ever
+saying so**. Three static files join the build output and are served by the same
+`express.static` as everything else in `dist/` — the backend needed no change at
+all:
+
+| URL | What |
+|---|---|
+| `/manifest.webmanifest` | Generated by `vite-plugin-pwa`, which also injects the `link` that points at it into the built `index.html`. `Gravina82` is the launcher label; `Índice gravinero` the full name |
+| `/sw.js` | The service worker, built from `packages/frontend/src/vue/pwa/sw.ts` |
+| `/icons/*.png` | Five committed PNGs — two `any`, two `maskable`, one for iOS |
+
+⚠️ **The service worker sends every navigation to the network**, and that is a
+consequence of the section above rather than a caching preference: the document
+is DIFFERENT per URL because the backend injects the title and the Open Graph
+tags into it, and nothing in the client puts a title back. A precached shell
+answered for every route — which is what Workbox's `generateSW` does by default —
+would silently retitle every shared permalink `Índice gravinero`. The precache
+holds the hashed assets and is the offline branch only.
+
+⚠️ **A new build is applied silently, and never on top of what somebody is
+doing**: not while audio is playing, and not on the clip editor or the admin clip
+screen, where there is unsaved work. There is no "a new version is available"
+notice anywhere and there must not be one. The mechanism and the five decisions
+behind it are in `packages/frontend/CLAUDE.md`, "The PWA".
+
+## Environment
+
+**One file: the root `.env`**, gitignored, with `.env.example` as its committed
+template (`cp .env.example .env`). It feeds three consumers at once —
+`docker-compose.yml`'s `${...}` substitution, the backend's `ConfigModule`, and
+the SPA build through Vite's `envDir`. There are no per-package env files.
+
+⚠️ **Real environment variables win over the file** on the backend side, which
+is what makes the docker case (values injected, no file at all) work with the
+same code. ⚠️ And setting a variable here does **not** inject it into a
+container: anything a service needs at runtime must also appear in its
+`environment:` block.
+
+| Key | Who reads it |
+|---|---|
+| `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_HOST`, `DB_PORT` | Compose and the backend. `DB_PORT` is the **host** port, `5433` in the template, deliberately not 5432 |
+| `SERVER_PORT`, `BACKEND_PORT` | The port the API listens on locally, and the host port the container publishes. Same default (3000) on purpose, so the Vite proxy needs no configuration |
+| `CORS` | Opt-in; only needed when something bypasses the Vite proxy |
+| `PUBLIC_URL` | ⚠️ The absolute origin used to build `og:url`. A relative one is ignored by every crawler, and it cannot be derived from the request |
+| `SPA_DIST_PATH` | Where the backend looks for the built SPA. Absent is not fatal — the API runs and warns. Baked into the image |
+| `JWT_SECRET` | ⚠️ **No default; the backend refuses to boot without it.** A fallback constant is a key everyone with this public repo knows |
+| `INGEST_CRON`, `INGEST_TIMEZONE`, `INGEST_FEED_URL`, `INGEST_TIMEOUT_MS` | The scheduled ingestion job. `off`/`false`/`no`/`0`/empty disables it |
+| `WAVEFORM_ENABLED`, `WAVEFORM_MAX_PER_RUN`, `WAVEFORM_FFMPEG_PATH`, `WAVEFORM_TIMEOUT_MS` | The waveform top-up chained after every ingestion tick. `WAVEFORM_ENABLED` off disables it (ingestion still runs); needs `ffmpeg` on `PATH`, whose absence degrades to a per-episode warning, never a boot failure |
+| `TEST_DB_PORT` | Host port for the disposable `gravindex-test-db` (profile `test`), `5434` in the template. `test:e2e` runs against it, never against `gravindex-db` |
+| `VITE_API_BASE_URL` | Build-time. Empty = same origin |
+| `BACKEND_URL` | Dev server only, never bundled: the Vite `/api` proxy target |
+| `VITE_GA4_ID` | ⚠️ Empty is a working configuration: no id ⇒ no analytics, no cookie, **no consent banner**. That is the normal state in dev and in this public repo |
+
+## Running it
+
+```bash
+cp .env.example .env     # set JWT_SECRET
+docker compose up        # or: npm start
+```
+
+That brings up Postgres, the API (which applies pending migrations before it
+listens, and serves the built SPA), and a one-shot seed container that loads
+the local `packages/backend/seed/gravindex.seed.sql` if it exists and skips if
+the database already has clips. The site is then on `http://localhost:3000`
+and needs nothing else to start. A clone has no seed file, so
+its catalogue starts empty; `node dist/ingest/ingest.cli.js` fills in the
+episodes from the feed, but no clips, votes or tags come with the repository.
+
+⚠️ **There is no script anywhere in this repo that wipes or reloads
+`gravindex-db`** — it is the database that ships to production. A
+`docker compose up`/`stack:up` that finds it already populated leaves it
+alone, permanently; refreshing the local seed from current data is
+`npm run db:export`, run by hand.
+
+For frontend work with HMR, leave the backend in docker and run the Vite dev
+server on its own (`npm run dev:frontend`, port 5173); it proxies `/api` to the
+compose backend, so nothing needs configuring and CORS is not involved. Full
+instructions, in Spanish, are in the `README.md` — keep the two in step.
+
+Other useful root scripts: `stack:up|down|logs|build`, `db:up|down|logs|psql`,
+`db:migrate`, `db:export`. For the disposable test stack (e2e, never the main
+database): `test:db:up|down|reset|migrate|seed|psql`,
+`test:backend`, `test:frontend` — see "Tests and validation".
+
+## Tests and validation
+
+```bash
+npm run validate   # lint + type-check + unit tests + e2e
+```
+
+Two layers, and the distinction matters when one goes red:
+
+| Layer | Command | What it is |
+|---|---|---|
+| **Unit** | `npm test` | **691** Jest tests (backend) + **1041** Vitest tests (frontend). ⚠️ Several backend suites need a **live Postgres**; each builds its own `gravindex_test_*` database and never touches `gravindex`. ⚠️ **No frontend unit test may reach the network** — jsdom serves from `http://localhost:3000`, which IS the dev backend, so `vitest.setup.ts` makes the default `fetch` throw. It is there because a spec once wrote 39 real rows |
+| **E2E** | `npm run test:e2e` | **122** Playwright tests over the real browser: debounce, infinite scroll, request cancellation, URL filters, the queue and its share links, playback, vote/tag, the editor, the slider, the injected meta tags, ingestion, mis momentos, the calendar |
+
+⚠️ **e2e needs a running candidate backend and a disposable database —
+neither is `gravindex-db`.** `npm run test:db:up && npm run
+test:db:seed` (or `test:db:reset`) brings up `gravindex-test-db` and loads it
+from the synthetic fixture `test/testdb/fixture.sql`, then `npm run test:backend` /
+`npm run test:frontend` run a dedicated backend/frontend pair on `:3001`/`:5174`
+pointed at it — deliberately different ports from the normal `npm run dev` loop
+(`:3000`/`:5173`), so `test:e2e`'s `reuseExistingServer` can never attach to a
+main-db-connected dev session by accident. `test/testdb/testdb.sh` is the
+lifecycle script (`up`/`down`/`reset`/`migrate`/`seed`/`psql`); `reset`
+wipes only the `gravindex_test-db` volume, by exact name, never a blanket
+`docker compose down -v`.
+
+⚠️ **Nothing in the test tree ever prints an IP.** The schema has no IP column, so
+the disposable database carries no addresses at all.
+
+The e2e suite runs single-worker with **no retries** on purpose — it writes to
+the same database whose exact row counts its setup asserts, and flakiness here
+is a finding to report, not a number to raise. It snapshots row counts **and
+sequences** before the run and fails teardown on any drift.
+
+## Conventions
+
+- **Git**: commit messages are in Spanish, imperative-ish, one line.
+- **Language**: **user-facing copy is Spanish**, written straight into the
+  templates — there is no i18n layer and the app is not going multilingual, the
+  voice is part of it. Identifiers, code comments and `CLAUDE.md` files are
+  **English**.
+- **Versions** are kept in lockstep by hand: both `package.json`s,
+  `packages/backend/src/constants/version.ts`, and the changelog in
+  `packages/frontend/src/vue/views/AboutView.vue`.
+- `any` is banned repo-wide by lint. Where it is genuinely unavoidable, disable
+  it inline **with a comment saying why**.
+- **Coding agents own testing their own changes.** Write whatever tests a
+  change genuinely calls for — a regression test for a bug fix, coverage for a
+  new behaviour — without waiting to be asked; match the layer to what changed
+  and the surrounding file's existing style (see "Tests and validation").
+  Do not add speculative tests for behaviour the change did not touch.
+
+## The API contract
+
+The API is a contract: every query-string shape, status code and empty-state
+message is something a client may depend on, and it is governed by its own
+tests. A change to it is deliberate and shows up in those tests.
+
+⚠️ **Anything changed in passing is a deviation**, and a deviation has to be a
+conscious, recorded decision. The convention is that each one carries a comment
+at the code that makes it, saying so; `grep -rn "recorded deviation"` over
+`packages/` is the index. Examples of what that looks like: the editor's three
+handles **clamp instead of crossing**, the list views have an error branch, and
+`tags=` (unbracketed) means the same filter as `tags[]=` instead of silently
+matching nothing.
+
+### Deliberate API behaviour
+
+1. **The admin surface** — a `user` table, bcrypt hashes, a login endpoint, a
+   JWT guard and a small UI to edit and delete clips and tags. It closes a real
+   hole: without it an ugly cut or an abusive tag can only be removed with
+   hand-written SQL. ⚠️ **The first user is inserted by
+   hand** — no seed, no CLI — so the `INSERT` must carry an already-hashed
+   password (`npm run hash-password -w packages/backend`). A plaintext one just
+   fails to log in.
+2. **Ingestion is a scheduled job with no HTTP surface.** No endpoint triggers
+   it: an unauthenticated GET that fires outbound requests and writes to the
+   database is exactly what this avoids. The feed is read as RSS — see
+   `packages/backend/CLAUDE.md`, "Ingestion".
+3. **There is no IP column anywhere.** Identity is the anonymous voter token
+   above, and nothing else.
+
+Two other decisions are not API contract: **GA4** (behind a hand-rolled consent
+banner, no library) and the fact that the backend serves the SPA. The UI below
+is the largest change of all.
+
+⚠️ Items 1–3 are also why `grep -rn "recorded deviation"` lists so many comments:
+every screen was built once, so the UI half of that index is the UI's own
+decisions. A comment there means "this differs on purpose", not "this is
+unusual".
+
+## The UI (accepted 2026-08-18, built 2026-08-19)
+
+
+The public UI is the specification of why the app looks like this, and this file
+plus each package's `CLAUDE.md` is where it is written down.
+
+⚠️ **The UI is governed by this document.** The **API** is still governed by its
+own tests, and that has not loosened by a millimetre.
+
+What this file has to state, all of it detailed above:
+
+- **`GET /clips/:id` carries `up`**, `GET /episodes` carries `clipCount` (and takes
+  `withClips`), `GET /tags` answers `{ tag, count }`, and `GET /clips/:id/related`
+  exists.
+- **Only positive votes exist** — endpoint, DTOs, payloads: `down` is on nothing.
+- **`/cola` is a route** and `?c=<base62>` a public URL shape.
+- **Every list is infinite**; no page number travels in a URL (`limit` is not
+  persisted either — the batch size is the design's, not the visitor's).
+
+One thing it deliberately did NOT do, a decision rather than a gap:
+
+- **The admin surface keeps its own, unrestyled look** — white cards, Vuetify
+  controls, `GravPagination`. That is correct, not pending.
+
+⚠️ **Audio download is built (2026-08-20), without a server-side re-encode.**
+A real download does not need one — no ffmpeg, no disk cache, no endpoint burning
+CPU and bandwidth per request: an MP3 is a sequence of independent frames, so a
+clip is cut **entirely in the browser** by copying bytes out of small `Range`
+reads — no decoding, no re-encoding, no audio processing on this project's
+own servers at all. See `packages/frontend/src/core/application/audio/mp3-frames.ts`.
+`GET /episodes/:id/audio` exists only because gravina82.com sends no CORS headers, so
+the frontend cannot `fetch()` it directly; the endpoint is a same-origin passthrough that
+relays the upstream's bytes untouched. Playback is unaffected — `<audio>` still loads
+gravina82.com directly.
+
+⚠️ **The episode list can be drawn as a CALENDAR (2026-08-27), and it needed no backend
+change either.** `/episodes/calendario/:year?` renders the same screen — same rail, same
+three filters, same header — with the middle replaced by a strip of every month the
+podcast has ever had, a year of day grids under it, and the day you pick as a floating
+layer over the top. It exists because a date-ordered infinite list cannot show what this
+catalogue's shape actually is: seventeen years, a stretch where the catalogue stopped
+growing and the RSS feed came back, and the fact that **almost every clip was cut from
+2010 and 2011**.
+
+⚠️ **The year travels in the PATH, and that is forced rather than chosen.**
+`use-list-filters.ts` rebuilds the whole query string from its own filters on every
+commit, so a `?a=2011` beside them would be erased the moment somebody typed in the
+search box; and declared *among* them it would be counted by `activeFilterCount` and
+cleared by `Limpiar filtros`. So: filters in the query, the view in the path. Entering
+**pushes** one history entry — Back returns to the list — and every year change after
+that **replaces**, which is the same rule `router.replace({ query })` already applies to
+every filter on this site. The three filters all apply to the calendar, `Con mis
+momentos` included.
+
+⚠️ **The whole catalogue arrives in six requests**, through a new
+`ListAllEpisodesUseCase` that loops `GET /episodes?limit=100` — the endpoint's maximum.
+No aggregate endpoint, no `openapi.json` change, no new declared difference: 589 rows is
+~35 KB, and this is the project that says not to design for volume it does not have.
+The mechanism and the five decisions behind it are in `packages/frontend/CLAUDE.md`,
+"The calendar".
+
+⚠️ **`Mis momentos` (2026-08-26): a private mark on an episode, and NOT a row in the
+database.** While an episode plays, one button in the player — repeated in the episode's
+own transport — marks the second that is sounding; `/episode/:id` then draws those marks
+in a lane over its wave and lists them under it, where each can be listened to from 20 s
+before, cut into a real clip, or forgotten. The episode list gains a third `Mostrar`
+state, `Con mis momentos`.
+
+⚠️ **It needed no backend change at all, and that is the decision rather than the
+shortcut.** A moment says *which episode, at which second, on which day somebody was
+listening* — a listening trail, more personal than the vote this project already refuses
+to attach to a person — so it lives in `localStorage` under `gravindex.moments`, the sixth
+key, and nothing about it ever reaches the server. The only identity available would be
+`X-Voter-Token`, which lives in that same storage, so a server copy would be exactly as
+losable and would cost the database its "not one personal column" property. Losing them is
+normal, like losing the token, and every screen that shows them says `solo en este
+navegador`. ⚠️ Two consequences reach this file: **`Con mis momentos` is a filter the API
+cannot answer**, so with it on the list is assembled in the browser out of
+`GET /episodes/:id` (and the title search runs locally); and **`/creator/:id` now takes
+`?start`, `?end` and `?moment`**, which is the whole path a moment has out of the browser
+it lives in — cut it, publish it, and the mark keeps the clip's id so the row reads
+`ya es el corte nº 137`. The mechanism and the five decisions behind it are in
+`packages/frontend/CLAUDE.md`, "Mis momentos".
+
+⚠️ **The waveform behind the player is measured now (2026-08-19), and drawn only as a
+fallback.** `GET /episodes/:id/waveform` serves real peaks computed offline, server-side,
+from the downloaded mp3 — see `packages/backend/src/waveform/` and its `CLAUDE.md`
+section — so the browser still never decodes audio itself, and `GravWave.vue` still falls
+back to its original deterministic pseudo-random shape, seeded by the clip id, for any
+episode that has not been measured yet or while the request is in flight.
+
+⚠️ **The episode page plays the episode (2026-08-25), and it needed no backend
+change at all.** `/episode/:id` draws the whole episode's measured waveform with
+its published clips as bands over it, and the episode sounds through the **one
+global player**, as a queue item beside the clips — the alternative, an audio
+element owned by that screen the way the editor owns its own, was rejected
+because a row on this site has no play button precisely so that there is one
+transport, and because leaving the page would cut a three-hour episode off. Its
+length comes from `GET /episodes/:id/waveform`'s `to`, which is the same request
+the drawing needs (`GET /episodes/:id` has never carried a duration), and the
+nine unmeasured episodes fall back to what the browser reports. The empty state
+stopped being a 220 px slab with a white-backgrounded PNG on it; the art was
+re-exported with a real alpha channel and is a watermark now. ⚠️ The joke is
+unchanged, in all three places it appears.
+
+⚠️ **The `2.0.0` changelog entry lives in `AboutView.vue`**, written by hand, and
+the version is `2.0.0` in both `package.json`s and in `constants/version.ts`.
+
+## Deployment
+
+The stack is **one image** — the backend serving the API and the built SPA —
+plus Postgres, behind whatever fronts it. Nothing external is fetched at boot
+(see "Running it").
+
+Two things worth knowing: `VITE_API_BASE_URL` is **baked in at build time**, so
+an image is environment-specific unless it reads runtime config instead (the
+same-origin default makes this a non-issue); and no proxy in front of it needs to
+know anything about crawlers.
+
+## Known gaps
+
+Real, deliberate, and recorded here so nobody rediscovers them as bugs:
+
+- **Nothing rate-limits anything.** Abuse control belongs in a proxy, and there
+  is no proxy here. A conscious gap. ⚠️ **`GET
+  /episodes/:id/audio` inherits this fully** — it streams episode bytes on demand,
+  with no cap on the requested span and nothing limiting how often it can be called.
+  Deliberate, not an oversight: the endpoint only serves files already in the
+  `episode` table (not an open proxy), and closing this properly means the general
+  general rate limiting above, not a special case bolted onto one route.
+- **`helmet`'s `contentSecurityPolicy` is off**, because the default blocks the
+  inline bootstrap a Vite build emits. Turning it on is real work.
+- **`playback` is still write-only** — nothing reads the counter back. ⚠️ It is
+  written by `stores/queue.store.ts` (once per clip per queue position), not by a
+  row.
+- **Clips with `end <= start` may exist in the catalogue.** The API refuses to
+  create one, but it does not retro-fix the ones already there.
+- ✅ **All three** items on the README's wish list are built: the global
+  persistent player with a queue, related clips on the clip view, and
+  (2026-08-20) audio download — client-side, no server-side re-encode, see "The
+  UI" above.

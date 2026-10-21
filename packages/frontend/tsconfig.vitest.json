@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.app.json",
+
+  // Only the specs: everything they import is pulled in by module resolution.
+  // `env.d.ts` is not imported by anything, so it has to be listed explicitly
+  // or its ambient declarations vanish for the test program.
+  "include": ["src/**/__tests__/*", "env.d.ts"],
+  "exclude": [],
+
+  "compilerOptions": {
+    // ⚠️ Must match `tsconfig.app.json`'s effective `lib`. Vitest runs in
+    // jsdom, but the app code the specs import is the same code the browser
+    // runs — an empty or Node-only `lib` here breaks type-checking for any
+    // source file a test happens to reach.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "jsdom"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.vitest.tsbuildinfo"
+  }
+}

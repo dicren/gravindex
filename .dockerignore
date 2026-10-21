@@ -1,0 +1,62 @@
+# What never reaches the build context.
+#
+# Two jobs here, and the second one matters more than image size:
+#
+#   1. Keep the context small and the build reproducible — a host
+#      `node_modules/` or `dist/` copied into the image would be whatever this
+#      laptop happens to have, not what the lockfile describes.
+#   2. Keep SECRETS and PERSONAL DATA out. This repository is public, the image
+#      is not, and neither is allowed to carry the other's problems: the root
+#      `.env` holds a database password and a JWT signing key, and the seed (which
+#      lives outside the repository, so it cannot appear here anyway) carries the
+#      community's clips, votes and listening history. Nothing from it reaches
+#      the image. See `docker/seed.sh`.
+#
+# ⚠️ Deliberately NOT excluded: `**/*.spec.ts` and the `__tests__` /
+# `__fixtures__` directories. It is tempting — none of it runs in the image —
+# but the frontend's `npm run build` calls `vue-tsc --build`, which builds every
+# project referenced from `tsconfig.json`, `tsconfig.vitest.json` included. Strip
+# the specs out of the context and that project has no input files, which is a
+# hard tsc error. The few hundred kilobytes buy a build that behaves exactly
+# like the one a developer runs.
+
+# ── Build inputs that must be regenerated, never copied ─────────────────────
+**/node_modules
+**/dist
+**/dist-ssr
+**/coverage
+**/.nyc_output
+**/*.tsbuildinfo
+
+# Runtime cache for the waveform job (downloaded episode mp3s, see
+# packages/backend/src/waveform/waveform.constants.ts): gitignored, grows
+# unbounded on a dev machine, and nothing in the Dockerfile COPYs it.
+packages/backend/data/episodes
+
+# ── Secrets ─────────────────────────────────────────────────────────────────
+# `.env.example` is the committed template and carries placeholders only; it is
+# excluded too, because nothing in the image reads it — the container gets its
+# configuration from the environment `docker-compose.yml` injects.
+.env
+.env.*
+*.env
+
+# ── Not part of the application ─────────────────────────────────────────────
+.git
+.gitignore
+.github
+.claude
+.dockerignore
+Dockerfile
+docker-compose.yml
+*.md
+LICENSE
+
+# Test infrastructure: the browser e2e suite. None of it runs inside this image.
+test
+
+# Tool caches
+**/.eslintcache
+**/.cache
+**/.vite
+**/.turbo

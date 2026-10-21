@@ -1,0 +1,1588 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Liveness probe and version",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/clips": {
+      "get": {
+        "description": "Every row carries its `up`, its `points` (the same number, kept because `order=points` travels in shared links), its episode and its tags. `total` is the number of matching rows ignoring pagination, so a page past the end returns an empty `results` with the real total.",
+        "operationId": "ClipsController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Rows per page.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "order",
+            "required": false,
+            "in": "query",
+            "description": "Sort key. Always descending, tie-broken by descending clip id.",
+            "schema": {
+              "default": "points",
+              "type": "string",
+              "enum": [
+                "points",
+                "clip.createdAt",
+                "episode.date"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case- and accent-insensitive substring match over the clip title, its episode title and its tags.",
+            "schema": {
+              "maxLength": 255,
+              "example": "canción",
+              "type": "string"
+            }
+          },
+          {
+            "name": "tags",
+            "required": false,
+            "in": "query",
+            "description": "Repeatable. A clip must carry EVERY tag listed (AND, not OR). Matched exactly: case- and accent-sensitive, unlike `search`.",
+            "schema": {
+              "maxLength": 255,
+              "example": [
+                "Absurdo"
+              ],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipListResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown `order`, out-of-range `page`/`limit`."
+          }
+        },
+        "summary": "The clip library: search, tag filter, sort, paginate",
+        "tags": [
+          "clips"
+        ]
+      },
+      "post": {
+        "operationId": "ClipsController_create",
+        "parameters": [
+          {
+            "name": "x-voter-token",
+            "in": "header",
+            "description": "Anonymous per-browser UUID. Stored as the submitter trail; never treated as identity.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`end` not greater than `start`, empty title, bad token."
+          },
+          "404": {
+            "description": "No such episode."
+          }
+        },
+        "summary": "Cut a new clip from an episode",
+        "tags": [
+          "clips"
+        ]
+      }
+    },
+    "/api/clips/{id}": {
+      "get": {
+        "description": "Carries `up`, aggregated from the vote table at read time — the clip permalink and the global player both draw a vote count for a clip opened by URL, and there is no other source for it. ⚠️ No `down`, and no `points` (it would be a second name for `up`).",
+        "operationId": "ClipsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Clip id.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "summary": "One clip, by its public id",
+        "tags": [
+          "clips"
+        ]
+      }
+    },
+    "/api/clips/{id}/related": {
+      "get": {
+        "description": "Ordered by how many tags they share, then by `up`, then by descending id, and capped at six. Rows are the same shape as `GET /clips` because the permalink renders them with the same component. A clip with no tags answers an empty array.",
+        "operationId": "ClipsController_findRelated",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Clip id.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClipListItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "summary": "Clips that share at least one tag with this one",
+        "tags": [
+          "clips"
+        ]
+      }
+    },
+    "/api/clips/{id}/play": {
+      "post": {
+        "description": "Fire-and-forget. Stores no identity of any kind — no IP, not even the token.",
+        "operationId": "ClipsController_play",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Clip id.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "summary": "Append one play to the counter",
+        "tags": [
+          "clips"
+        ]
+      }
+    },
+    "/api/clips/{id}/vote/{value}": {
+      "post": {
+        "description": "⚠️ A REPEATED VOTE IS NOT AN HTTP ERROR. It answers the ordinary 201 with `error: 'you have already voted'` in the body, and the frontend branches on that string. Changing your mind answers `{ delete: <old>, add: <new> }`, which the UI uses to adjust its counters. Deduplication is per `(clip, token)`, so the header is required.",
+        "operationId": "ClipsController_vote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Clip id.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "value",
+            "required": true,
+            "in": "path",
+            "description": "The vote. Always 1: an upvote is the only vote there is.",
+            "schema": {
+              "type": "number",
+              "enum": [
+                1
+              ]
+            }
+          },
+          {
+            "name": "x-voter-token",
+            "in": "header",
+            "description": "Anonymous per-browser UUID. Required: it is what deduplicates the vote.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`value` other than 1 (a negative value included), or a missing/malformed token."
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "summary": "Vote a clip up",
+        "tags": [
+          "clips"
+        ]
+      }
+    },
+    "/api/clips/{id}/tag/{value}": {
+      "post": {
+        "description": "Unlike voting, a repeat here really is a 409 — the two write paths disagree with each other and both behaviours are the specification.",
+        "operationId": "ClipsController_addTag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Clip id.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "value",
+            "required": true,
+            "in": "path",
+            "description": "The tag to attach, as free text.",
+            "schema": {
+              "maxLength": 255,
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-voter-token",
+            "in": "header",
+            "description": "Anonymous per-browser UUID. Stored as the submitter trail.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipTagDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": ""
+          },
+          "409": {
+            "description": "Tag repeated"
+          }
+        },
+        "summary": "Attach a tag to a clip",
+        "tags": [
+          "clips"
+        ]
+      }
+    },
+    "/api/episodes": {
+      "get": {
+        "description": "Newest first, by publish date. Rows carry `clipCount` but no clips and no vote counts — that is what `GET /episodes/:id` is for. `withClips=true` keeps only the 61 episodes something has been cut from. `total` is the number of matching rows ignoring pagination, so a page past the end returns an empty `results` with the real total.",
+        "operationId": "EpisodesController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "1-based page number.",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Rows per page.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Case- and accent-insensitive substring match over the episode TITLE only. ⚠️ Narrower than `GET /clips`, which also searches the episode title and the tags — that asymmetry is deliberate.",
+            "schema": {
+              "maxLength": 255,
+              "example": "Desnúdate",
+              "type": "string"
+            }
+          },
+          {
+            "name": "withClips",
+            "required": false,
+            "in": "query",
+            "description": "When true, only episodes that have at least one clip. `true` / `false` only.",
+            "schema": {
+              "example": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeListResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Out-of-range `page`/`limit`, or an unknown parameter."
+          }
+        },
+        "summary": "The episode library: search by title, paginate",
+        "tags": [
+          "episodes"
+        ]
+      }
+    },
+    "/api/episodes/{id}": {
+      "get": {
+        "description": "Each clip carries its tags and its `up` count — but **not** `points`, and not its episode. The frontend reaches this route as `/episode/<id>-<slug>` and parses the leading integer itself.",
+        "operationId": "EpisodesController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Episode id. The frontend sends `<id>-<slug>` and parses the leading integer.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A non-numeric or non-positive id."
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "summary": "One episode, with every clip cut from it",
+        "tags": [
+          "episodes"
+        ]
+      }
+    },
+    "/api/episodes/{id}/waveform": {
+      "get": {
+        "description": "One unsigned byte per point, base64-encoded, `from`/`to` seconds into the episode. ⚠️ An episode that exists but has not been measured yet answers 200 with `points: 0` and `peaks: ''` — not a 404. The frontend falls back to a drawn placeholder for those.",
+        "operationId": "EpisodesController_getWaveform",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Episode id. The frontend sends `<id>-<slug>` and parses the leading integer.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Seconds into the episode to start the slice at. Default 0.",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Seconds into the episode to end the slice at. Default: the whole episode.",
+            "schema": {
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "points",
+            "required": false,
+            "in": "query",
+            "description": "How many bytes to resample the slice down to.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 2000,
+              "default": 160,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeWaveformDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A non-numeric or out-of-range `from`/`to`/`points`."
+          },
+          "404": {
+            "description": ""
+          }
+        },
+        "summary": "The episode's measured waveform, sliced and resampled",
+        "tags": [
+          "episodes"
+        ]
+      }
+    },
+    "/api/episodes/{id}/audio": {
+      "get": {
+        "description": "gravina82.com sends no `Access-Control-*` headers, so the frontend cannot `fetch()` it directly to read MP3 frames out of a `Range` slice — which is how a clip is cut entirely in the browser, without a server-side re-encode. This endpoint forwards the incoming `Range` verbatim and streams the upstream response back untouched; **no audio processing happens in this process**. Playback is unaffected — the player still loads gravina82.com directly. No `Range` header serves the whole file. ⚠️ No cap on the requested span and nothing rate-limits this endpoint — a recorded, deliberate gap, see the root CLAUDE.md, \"Known gaps\".",
+        "operationId": "EpisodesController_getAudio",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Episode id. The frontend sends `<id>-<slug>` and parses the leading integer.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "description": "Forwarded verbatim to the upstream mp3. Omit it to receive the whole file.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The whole file — no `Range` was sent, or the upstream ignored it.",
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "Partial Content — the upstream honoured the `Range`.",
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A non-numeric or non-positive id."
+          },
+          "404": {
+            "description": ""
+          },
+          "502": {
+            "description": "The episode's mp3 host answered with an error."
+          },
+          "504": {
+            "description": "The episode's mp3 host did not answer in time."
+          }
+        },
+        "summary": "A same-origin passthrough to the episode's mp3, for cutting a clip client-side",
+        "tags": [
+          "episodes"
+        ]
+      }
+    },
+    "/api/tags": {
+      "get": {
+        "description": "A flat array of `{ tag, count }` — no envelope and no pagination; there are 102 of them. It is what the library's tag filter offers, and `tag` is what `GET /clips?tags[]=…` matches EXACTLY (case- and accent-sensitive), which is why the order is code-point and not linguistic. ⚠️ Objects, not a flat `string[]`: the browser cannot count tags.",
+        "operationId": "TagsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagCountDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Every distinct tag with how many clips carry it",
+        "tags": [
+          "tags"
+        ]
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid username or password."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/admin/me": {
+      "get": {
+        "operationId": "AdminController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminIdentityDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, malformed or expired admin token."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/clips/{id}": {
+      "get": {
+        "operationId": "AdminController_getClip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminClipDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, malformed or expired admin token."
+          },
+          "404": {
+            "description": "No clip with that id."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "AdminController_updateClip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminClipDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, malformed or expired admin token."
+          },
+          "404": {
+            "description": "No clip with that id."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminController_deleteClip",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The clip and all its votes, plays and tags are gone."
+          },
+          "401": {
+            "description": "Missing, malformed or expired admin token."
+          },
+          "404": {
+            "description": "No clip with that id."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/clips/{id}/tags": {
+      "patch": {
+        "operationId": "AdminController_renameTag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameTagDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminClipDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, malformed or expired admin token."
+          },
+          "404": {
+            "description": "No such clip, or the clip does not carry that tag."
+          },
+          "409": {
+            "description": "The clip already carries the new tag."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      },
+      "delete": {
+        "operationId": "AdminController_deleteTag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "tag",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "maxLength": 255,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The tag is off this clip."
+          },
+          "401": {
+            "description": "Missing, malformed or expired admin token."
+          },
+          "404": {
+            "description": "The clip does not carry that tag."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "admin"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Gravindex API",
+    "description": "Índice gravinero — clips, episodes and tags of the gravina82 podcast",
+    "version": "2.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "HealthResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "version": {
+            "type": "string",
+            "description": "The backend package's version",
+            "example": "2.0.0"
+          },
+          "time": {
+            "type": "string",
+            "description": "Server time, UTC ISO-8601",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "time"
+        ]
+      },
+      "ClipEpisodeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 63
+          },
+          "title": {
+            "type": "string",
+            "example": "Episodio 86 (Spanish Zombies)"
+          },
+          "cover": {
+            "type": "string",
+            "description": "Cover image URL."
+          },
+          "file": {
+            "type": "string",
+            "description": "The remote mp3 the browser streams. Not hosted here."
+          },
+          "originalUrl": {
+            "type": "string",
+            "description": "The episode's page on gravina82.com."
+          },
+          "date": {
+            "type": "string",
+            "description": "Publish date, UTC ISO-8601.",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "cover",
+          "file",
+          "originalUrl",
+          "date"
+        ]
+      },
+      "ClipTagDto": {
+        "type": "object",
+        "properties": {
+          "clipId": {
+            "type": "number",
+            "description": "Owning clip id.",
+            "example": 178
+          },
+          "tag": {
+            "type": "string",
+            "description": "Free text, as submitted.",
+            "example": "Mulata"
+          }
+        },
+        "required": [
+          "clipId",
+          "tag"
+        ]
+      },
+      "ClipListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "THE public identifier: `https://indice.gravina82.com/<id>` is the permalink.",
+            "example": 178
+          },
+          "title": {
+            "type": "string",
+            "example": "La mulata del clítor..."
+          },
+          "start": {
+            "type": "number",
+            "description": "Offset into the episode, in whole seconds.",
+            "example": 792
+          },
+          "end": {
+            "type": "number",
+            "description": "Offset into the episode, in whole seconds.",
+            "example": 870
+          },
+          "episode": {
+            "$ref": "#/components/schemas/ClipEpisodeDto"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClipTagDto"
+            }
+          },
+          "up": {
+            "type": "number",
+            "description": "Number of upvotes. Not a column — aggregated per request.",
+            "example": 15
+          },
+          "points": {
+            "type": "number",
+            "description": "The sort key. Identical to `up`: every vote is positive.",
+            "example": 15
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "start",
+          "end",
+          "episode",
+          "tags",
+          "up",
+          "points"
+        ]
+      },
+      "ClipListResponseDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Rows matching the query, ignoring pagination.",
+            "example": 180
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClipListItemDto"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "results"
+        ]
+      },
+      "ClipDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "THE public identifier: `https://indice.gravina82.com/<id>` is the permalink.",
+            "example": 178
+          },
+          "title": {
+            "type": "string",
+            "example": "La mulata del clítor..."
+          },
+          "start": {
+            "type": "number",
+            "description": "Offset into the episode, in whole seconds.",
+            "example": 792
+          },
+          "end": {
+            "type": "number",
+            "description": "Offset into the episode, in whole seconds.",
+            "example": 870
+          },
+          "episode": {
+            "$ref": "#/components/schemas/ClipEpisodeDto"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClipTagDto"
+            }
+          },
+          "up": {
+            "type": "number",
+            "description": "Number of upvotes. Not a column — aggregated per request.",
+            "example": 15
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "start",
+          "end",
+          "episode",
+          "tags",
+          "up"
+        ]
+      },
+      "CreateClipDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Offset into the episode, in whole seconds."
+          },
+          "end": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Offset into the episode, in whole seconds. Must be greater than `start`."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "tags": {
+            "maxItems": 50,
+            "description": "Free-text tags. May be empty; duplicates are collapsed.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          "episode": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Id of the episode this clip is cut from."
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "title",
+          "tags",
+          "episode"
+        ]
+      },
+      "PlaybackResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Id of the appended playback row.",
+            "example": 3814
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "VoteResponseDto": {
+        "type": "object",
+        "properties": {
+          "delete": {
+            "type": "number",
+            "description": "The value of the vote this call removed, or 0. Non-zero only when changing sides.",
+            "example": 0
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "`'you have already voted'` when the same vote was already cast, otherwise null.",
+            "example": null
+          },
+          "add": {
+            "type": "number",
+            "description": "The value of the vote this call recorded, or 0.",
+            "example": 1
+          }
+        },
+        "required": [
+          "delete",
+          "error",
+          "add"
+        ]
+      },
+      "EpisodeListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Public identifier. `/episode/<id>-<slug>` is the shareable URL.",
+            "example": 63
+          },
+          "title": {
+            "type": "string",
+            "example": "Episodio 86 (Spanish Zombies)"
+          },
+          "cover": {
+            "type": "string",
+            "description": "Cover image URL."
+          },
+          "file": {
+            "type": "string",
+            "description": "The remote mp3 the browser streams. Not hosted here."
+          },
+          "originalUrl": {
+            "type": "string",
+            "description": "The episode's page on gravina82.com."
+          },
+          "date": {
+            "type": "string",
+            "description": "Publish date, UTC ISO-8601.",
+            "format": "date-time"
+          },
+          "clipCount": {
+            "type": "number",
+            "description": "How many clips have been cut from this episode.",
+            "example": 7
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "cover",
+          "file",
+          "originalUrl",
+          "date",
+          "clipCount"
+        ]
+      },
+      "EpisodeListResponseDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Rows matching the query, ignoring pagination.",
+            "example": 180
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EpisodeListItemDto"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "results"
+        ]
+      },
+      "EpisodeClipDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "THE public identifier: `https://indice.gravina82.com/<id>` is the permalink.",
+            "example": 178
+          },
+          "title": {
+            "type": "string",
+            "example": "La mulata del clítor..."
+          },
+          "start": {
+            "type": "number",
+            "description": "Offset into the episode, in whole seconds.",
+            "example": 792
+          },
+          "end": {
+            "type": "number",
+            "description": "Offset into the episode, in whole seconds.",
+            "example": 870
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClipTagDto"
+            }
+          },
+          "up": {
+            "type": "number",
+            "description": "Number of upvotes.",
+            "example": 15
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "start",
+          "end",
+          "tags",
+          "up"
+        ]
+      },
+      "EpisodeDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Public identifier. `/episode/<id>-<slug>` is the shareable URL.",
+            "example": 63
+          },
+          "title": {
+            "type": "string",
+            "example": "Episodio 86 (Spanish Zombies)"
+          },
+          "cover": {
+            "type": "string",
+            "description": "Cover image URL."
+          },
+          "file": {
+            "type": "string",
+            "description": "The remote mp3 the browser streams. Not hosted here."
+          },
+          "originalUrl": {
+            "type": "string",
+            "description": "The episode's page on gravina82.com."
+          },
+          "date": {
+            "type": "string",
+            "description": "Publish date, UTC ISO-8601.",
+            "format": "date-time"
+          },
+          "clips": {
+            "description": "Every clip cut from this episode, oldest id first. Empty when there are none.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EpisodeClipDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "cover",
+          "file",
+          "originalUrl",
+          "date",
+          "clips"
+        ]
+      },
+      "EpisodeWaveformDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "number",
+            "description": "Seconds into the episode this slice starts at, clamped to what the stored waveform actually covers.",
+            "example": 0
+          },
+          "to": {
+            "type": "number",
+            "description": "Seconds into the episode this slice ends at, clamped the same way.",
+            "example": 60
+          },
+          "points": {
+            "type": "number",
+            "description": "How many bytes `peaks` carries. May be fewer than requested — never more.",
+            "example": 160
+          },
+          "peaks": {
+            "type": "string",
+            "description": "One unsigned byte per point (0–255, a normalized peak), base64-encoded. Empty string when the episode has no waveform yet.",
+            "example": "AAECAw=="
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "points",
+          "peaks"
+        ]
+      },
+      "TagCountDto": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "description": "The tag, exactly as stored.",
+            "example": " Canciones"
+          },
+          "count": {
+            "type": "number",
+            "description": "How many clips carry it.",
+            "example": 19
+          }
+        },
+        "required": [
+          "tag",
+          "count"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Bearer token for the `Authorization` header."
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessToken",
+          "username"
+        ]
+      },
+      "AdminIdentityDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username"
+        ]
+      },
+      "AdminClipDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "title": {
+            "type": "string"
+          },
+          "start": {
+            "type": "number",
+            "description": "Seconds from the start of the episode."
+          },
+          "end": {
+            "type": "number",
+            "description": "Seconds from the start of the episode."
+          },
+          "episodeId": {
+            "type": "number"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "start",
+          "end",
+          "episodeId",
+          "tags"
+        ]
+      },
+      "UpdateClipDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "pattern": "\\S"
+          },
+          "start": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Seconds from the start of the episode."
+          },
+          "end": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Seconds from the start of the episode."
+          }
+        }
+      },
+      "RenameTagDto": {
+        "type": "object",
+        "properties": {
+          "tag": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "The existing tag on this clip."
+          },
+          "newTag": {
+            "type": "string",
+            "maxLength": 255,
+            "pattern": "\\S",
+            "description": "What it becomes."
+          }
+        },
+        "required": [
+          "tag",
+          "newTag"
+        ]
+      }
+    }
+  }
+}

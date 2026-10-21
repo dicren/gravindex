@@ -1,0 +1,23 @@
+{
+  // Array form (TS 5+): later entries win, so Vue's DOM `lib`/`jsx`/module
+  // settings override the Node-shaped defaults in the shared base.
+  "extends": ["../../tsconfig.base.json", "@vue/tsconfig/tsconfig.dom.json"],
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  // ⚠️ `sw.ts` is excluded because it is a WEB WORKER: it needs
+  // `lib: WebWorker`, which cannot coexist with DOM in one program. It has
+  // its own project, `tsconfig.sw.json`, and `vue-tsc --build` checks it there.
+  "exclude": ["src/**/__tests__/*", "src/vue/pwa/sw.ts"],
+  "compilerOptions": {
+    // Two aliases, and the split is the architecture:
+    //   `#/*` is the framework-free core (domain/application/infrastructure/config)
+    //   `@/*` is the Vue delivery layer
+    // Never reach across the two roots with a relative `../../` path.
+    "paths": {
+      "#/*": ["./src/core/*"],
+      "@/*": ["./src/vue/*"]
+    },
+
+    // `vue-tsc --build` writes a .tsbuildinfo; keep it out of the package root.
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
+  }
+}

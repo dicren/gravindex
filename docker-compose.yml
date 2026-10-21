@@ -1,0 +1,235 @@
+# The whole application, locally, with one command:
+#
+#     cp .env.example .env      # then set JWT_SECRET
+#     docker compose up
+#
+# and the site is at http://localhost:3000 with the real data in it. Three
+# services do that, in this order:
+#
+#     gravindex-db     postgres, healthy when `pg_isready` succeeds
+#     gravindex-api    the backend: the API under /api AND the built SPA around
+#                      it, one process, one origin
+#     gravindex-seed   one shot — loads the local seed (packages/backend/seed/,
+#                      git-ignored, absent in a clone), then gets out of the way
+#                      (it skips if the database already has clips)
+#
+# ⚠️ There is NO migration service, and that is deliberate. The backend applies
+# pending migrations itself in `DatabaseModule.onModuleInit`, which Nest runs to
+# completion before `app.listen()` binds the port — so migrations are already
+# guaranteed to precede the first request, by the same code path a developer
+# runs locally. A separate one-shot would be a second place for the schema to be
+# created from, and the two would drift.
+#
+# ⚠️ Needs a root `.env`; copy `.env.example` and edit it. Compose interpolates
+# this whole file on EVERY command, so a missing variable here is a silent empty
+# string, not an error: postgres would come up with no password set and
+# `pg_isready` would probe the wrong user.
+name: gravindex
+
+# Rotated json-file logging. The default driver keeps logs unbounded.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+services:
+  gravindex-db:
+    # ⚠️ Pinned to the major on purpose: the database holds real data, and
+    # a `postgres:latest` that jumps a major on `docker compose pull` refuses to
+    # start against an existing data directory.
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      # ⚠️ The HOST port is configurable because 5432 is very likely already
+      # taken by another local postgres. Change
+      # `DB_PORT` in `.env` if this fails to bind; the container side is always
+      # 5432, so nothing inside the compose network is affected.
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      # Not just "the port is open": `pg_isready` against the real user and
+      # database, so a service that depends on this one waits for a postgres
+      # that can actually be connected to.
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  gravindex-api:
+    # NestJS 11 + the built Vue 3 SPA in one image. See `Dockerfile` for why the
+    # frontend is built in there instead of getting its own container: the
+    # backend serves the SPA and injects the social-preview meta tags, so the
+    # two MUST share an origin.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gravindex-api:2.0.0
+    # ⚠️ `build`, not the default `missing`. This image is built here and exists
+    # in no registry, so on a first run compose tries to PULL it and prints a red
+    # "pull access denied" before quietly building it anyway — which reads like
+    # the cause of anything that goes wrong next. `build` skips the pull. It
+    # rebuilds on every `up`, which costs about three seconds when nothing
+    # changed (buildkit serves every layer from cache) and is a feature the rest
+    # of the time: editing the SPA and running `docker compose up` shows the
+    # change, with no separate build step to forget.
+    pull_policy: build
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      gravindex-db:
+        # Not `service_started`: the app runs its migrations before it listens,
+        # so it needs a postgres that actually accepts connections, not one
+        # whose port is merely open.
+        condition: service_healthy
+    environment:
+      # ⚠️ The container port is FIXED at 3000 and only the host side is
+      # configurable. Everything inside the compose network (the healthcheck,
+      # the seed's probe) then has one number to agree on, and the published
+      # port becomes a pure host-side concern.
+      - SERVER_PORT=3000
+      # Inside the network postgres is a container name on the default port —
+      # never `DB_HOST`/`DB_PORT` from `.env`, which describe how a process
+      # running on the HOST reaches the published one.
+      - DB_HOST=gravindex-db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      # Same origin for both halves here, so CORS buys nothing. Passed through
+      # anyway for the developer who points a separately-run Vite straight at
+      # this port instead of through its proxy.
+      - CORS=${CORS:-false}
+      # ⚠️ Must match the port below, because it is what `og:url` claims. A
+      # crawler ignores a relative one, and a wrong absolute one produces link
+      # previews that point at nothing.
+      - PUBLIC_URL=${PUBLIC_URL:-http://localhost:3000}
+      - JWT_SECRET=${JWT_SECRET}
+      # ⚠️ Off by default. The ingestion job reaches OUT to gravina82.com on a
+      # schedule, and a local stack that quietly starts scraping a third party
+      # because someone left it running overnight is not a good neighbour. Set
+      # INGEST_CRON in `.env` to turn it on; run it once by hand with
+      # `docker compose exec gravindex-api node dist/ingest/ingest.cli.js`.
+      - INGEST_CRON=${INGEST_CRON:-off}
+      - INGEST_TIMEZONE=${INGEST_TIMEZONE:-UTC}
+      - INGEST_FEED_URL=${INGEST_FEED_URL:-https://gravina82.com/feed/}
+      - INGEST_TIMEOUT_MS=${INGEST_TIMEOUT_MS:-30000}
+      # Chained after every ingestion tick — off whenever ingestion itself is,
+      # since there is nothing new to measure otherwise. `ffmpeg` is baked into
+      # this image's runtime stage (see the Dockerfile); its absence would only
+      # degrade to a per-episode warning, never stop the container booting.
+      - WAVEFORM_ENABLED=${WAVEFORM_ENABLED:-true}
+      - WAVEFORM_MAX_PER_RUN=${WAVEFORM_MAX_PER_RUN:-5}
+      - WAVEFORM_FFMPEG_PATH=${WAVEFORM_FFMPEG_PATH:-ffmpeg}
+      - WAVEFORM_TIMEOUT_MS=${WAVEFORM_TIMEOUT_MS:-900000}
+    ports:
+      # Host 3000 by default, matching `SERVER_PORT` in `.env`, so that the
+      # Vite dev server's `/api` proxy — which targets
+      # `http://localhost:${SERVER_PORT}` — points at this container with no
+      # configuration at all. That is the documented dev loop (see README).
+      # ⚠️ Change `BACKEND_PORT` if a non-docker backend already holds 3000, and
+      # change `PUBLIC_URL` with it.
+      - '${BACKEND_PORT:-3000}:3000'
+    healthcheck:
+      # `node -e` rather than curl or wget: neither is in `node:24-slim`, and
+      # adding a package to the runtime image just to probe it would be a poor
+      # trade. Node 24 has `fetch` as a global.
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      # The first boot applies every migration before it answers anything.
+      start_period: 30s
+
+  gravindex-seed:
+    # One shot: the local seed at `packages/backend/seed/` (git-ignored) into
+    # postgres, then gone. Same image as the API, different entrypoint. See
+    # `docker/seed.sh` for why it is kept deliberately dumb.
+    #
+    # ⚠️ The `build:` block and `pull_policy` are repeated rather than left to
+    # `gravindex-api`: compose resolves an image per SERVICE, so without them
+    # this one would still try to pull `gravindex-api:2.0.0` from Docker Hub and
+    # fail loudly on a first run. Identical builds are deduplicated, so this
+    # costs one extra "Built" line and no extra work.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gravindex-api:2.0.0
+    pull_policy: build
+    restart: 'no'
+    logging: *default-logging
+    depends_on:
+      gravindex-api:
+        # ⚠️ HEALTHY, not started, and this is what orders the whole stack: the
+        # API is only healthy once its migrations have run, so the seed can
+        # assume the tables exist. It is also how `docker/seed.sh` asks whether
+        # data is already present — over the API, so nothing here needs a
+        # postgres client of its own beyond `psql`.
+        condition: service_healthy
+    environment:
+      - DB_HOST=gravindex-db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - SEED_API_URL=http://gravindex-api:3000
+    entrypoint: ['gravindex-seed']
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # The disposable test database (profile `test`) — TEST INFRASTRUCTURE, NEVER
+  # DEPLOYED
+  #
+  # `test:e2e` needs to reset and reload a Postgres to the exact pristine state
+  # to mean anything, and `gravindex-db` is never wiped (see
+  # `docker/seed.sh` and the root CLAUDE.md, "Tests and validation"). This is
+  # that database: its own container, its own volume, loaded from the synthetic
+  # fixture `test/testdb/fixture.sql`, freely reset by `npm run test:db:reset`.
+  # Gated behind `profiles: [test]`, so a plain `docker compose up` never starts
+  # it.
+  # ──────────────────────────────────────────────────────────────────────────
+
+  gravindex-test-db:
+    image: postgres:16-alpine
+    profiles: [test]
+    restart: 'no'
+    logging: *default-logging
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      # ⚠️ Never 5432 or `DB_PORT`: this has to be reachable at the same time as
+      # the real `gravindex-db`, as a second, throwaway server.
+      - '${TEST_DB_PORT:-5434}:5432'
+    volumes:
+      - test-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  # Named, not a bind mount: this is the database that ships to production.
+  # ⚠️ Nothing in this repository deletes it — see `docker/seed.sh` and the
+  # root CLAUDE.md, "Running it". If you genuinely need to wipe it,
+  # that is a deliberate `docker volume rm gravindex_db` by hand, not a
+  # one-line script.
+  db:
+  # The disposable test database (profile `test`). `npm run test:db:reset`
+  # wipes exactly this volume by name — never a blanket `down -v` — and
+  # reloads it from `test/testdb/fixture.sql`. `test:e2e` runs against it, never
+  # against `db` above.
+  test-db:

@@ -1,0 +1,21 @@
+# Not source.
+node_modules
+dist
+coverage
+package-lock.json
+
+# Generated, never edited by hand: the OpenAPI document (`npm run openapi`),
+# MikroORM's migration snapshot, which the CLI rewrites on every
+# `migration:create`, and the frontend's API client, which
+# `npm run generate:api -w packages/frontend` rewrites wholesale (it runs
+# Prettier itself, so the committed output is formatted — just not from here).
+openapi.json
+.snapshot-*.json
+/packages/frontend/src/core/infrastructure/generated/
+
+# Hand-written docs: Prettier would reflow prose that is deliberately wrapped
+# at 80 columns.
+*.md
+
+# Playwright output for the behaviour e2e suite.
+test/e2e/.artifacts

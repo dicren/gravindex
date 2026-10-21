@@ -1,0 +1,44 @@
+/*
+ * The two fades the site uses.
+ *
+ * ⚠️ Vue 3 starts a transition from `.x-enter-from` and `.x-leave-from`. A rule
+ * written against the bare `.x-enter` or `.x-leave` still "works" — it just
+ * skips its opening frame and pops, which is the kind of regression nobody files
+ * a bug about.
+ *
+ * `component-fade` is the route transition (`App.vue`); `load` is for content
+ * swapping in place behind a spinner. Both are 300 ms opacity, nothing more:
+ * the identity here is loud typography, not motion.
+ */
+
+.component-fade-enter-active,
+.component-fade-leave-active,
+.load-enter-active,
+.load-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.component-fade-enter-from,
+.component-fade-leave-to,
+.load-enter-from,
+.load-leave-to {
+  opacity: 0;
+}
+
+.component-fade-enter-to,
+.component-fade-leave-from,
+.load-enter-to,
+.load-leave-from {
+  opacity: 1;
+}
+
+/* A route change that fades is a route change that animates on every
+ * navigation. Honour the preference and cut straight to the new view. */
+@media (prefers-reduced-motion: reduce) {
+  .component-fade-enter-active,
+  .component-fade-leave-active,
+  .load-enter-active,
+  .load-leave-active {
+    transition: none;
+  }
+}

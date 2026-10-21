@@ -1,0 +1,38 @@
+{
+  // Shared TypeScript baseline for every workspace. Extend it, never edit a
+  // package's copy of one of these flags:
+  //
+  //   packages/backend/tsconfig.json   -> "extends": "../../tsconfig.base.json"
+  //   packages/frontend/tsconfig.app.json
+  //       -> "extends": ["../../tsconfig.base.json", "@vue/tsconfig/tsconfig.dom.json"]
+  //     (array form, TS 5+: later entries win, so Vue's DOM `lib`/`jsx` settings
+  //      override the Node-shaped defaults below.)
+  //
+  // ⚠️ What is deliberately NOT here: `module`, `moduleResolution`, `outDir`,
+  // `types`, and the decorator flags. The two packages genuinely disagree on
+  // those — the backend emits CommonJS with `emitDecoratorMetadata` for
+  // Nest/MikroORM, the frontend is ESM resolved in bundler mode — so each one
+  // sets them itself. A shared value would only be overridden everywhere.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    // Strict is the baseline, not an aspiration: `any` is additionally banned
+    // by the shared ESLint config.
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+
+    // Type-check the app, not its dependencies.
+    "skipLibCheck": true,
+
+    "sourceMap": true,
+    "incremental": true
+  }
+}

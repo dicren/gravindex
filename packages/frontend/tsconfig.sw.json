@@ -1,0 +1,27 @@
+{
+  // The service worker, and it is its own project on purpose.
+  //
+  // ⚠️ `sw.ts` needs `lib: WebWorker`, and WebWorker and DOM cannot share a
+  // program: they declare the same names (`self`, `fetch`, `Event`, …) with
+  // different types, so TypeScript reports dozens of duplicate-identifier
+  // errors the moment both are loaded. `tsconfig.app.json` therefore EXCLUDES
+  // this one file and it is compiled here instead — which is also why no spec
+  // may import it (`tsconfig.vitest.json` is a DOM program and would drag it
+  // back in).
+  //
+  // Nothing here emits: Vite builds the worker. This project exists so that
+  // `vue-tsc --build` type-checks it like everything else.
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/vue/pwa/sw.ts"],
+  "compilerOptions": {
+    "lib": ["ES2022", "WebWorker"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    // ⚠️ Empty, not omitted: with the default, every `@types/*` package in the
+    // workspace is loaded — including `@types/node` and `@types/jsdom`, which
+    // bring their own `fetch` and their own globals into a worker program.
+    "types": [],
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.sw.tsbuildinfo"
+  }
+}

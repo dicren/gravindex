@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Invented feed for the ingestion tests. Every URL points at example.com or
+  example.invalid, and the episodes do not exist. It has the shape of the
+  podcast RSS feed the job reads, and nothing else. The newest entry comes first,
+  as in a real feed.
+-->
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Podcast de ejemplo</title>
+    <link>https://example.com/podcast/</link>
+    <description>Feed sintético para los tests de ingesta.</description>
+    <language>es-es</language>
+    <itunes:image href="https://example.com/podcast/cover.png" />
+    <image>
+      <url>https://example.com/podcast/cover-small.png</url>
+      <title>Podcast de ejemplo</title>
+      <link>https://example.com/podcast/</link>
+    </image>
+
+    <item>
+      <title>Episodio 8: el primero de la temporada</title>
+      <link>https://example.com/podcast/episodio-8/</link>
+      <pubDate>Mon, 28 Oct 2024 20:00:00 +0200</pubDate>
+      <description>Primer episodio de la temporada.</description>
+      <enclosure url="http://media.example.com/episodio-8.mp3" length="1" type="audio/mpeg" />
+      <itunes:duration>1:19:18</itunes:duration>
+    </item>
+
+    <item>
+      <title>Episodio 7 &#8211; Entrevista&#8230;</title>
+      <link>https://example.com/podcast/episodio-7/</link>
+      <pubDate>Mon, 21 Oct 2024 18:00:00 +0000</pubDate>
+      <description>Entrevista a una invitada.</description>
+      <enclosure url="https://media.example.com/episodio-7.mp3" length="1" type="audio/mpeg" />
+      <itunes:duration>59:24</itunes:duration>
+    </item>
+
+    <item>
+      <title>Episodio 6: sin duración</title>
+      <link>https://example.com/podcast/episodio-6/</link>
+      <pubDate>Mon, 14 Oct 2024 18:00:00 +0000</pubDate>
+      <description></description>
+      <enclosure url="https://media.example.com/episodio-6.mp3" length="1" type="audio/mpeg" />
+    </item>
+
+    <item>
+      <title>Episodio 5: duración en segundos</title>
+      <link>https://example.com/podcast/episodio-5/</link>
+      <pubDate>Mon, 07 Oct 2024 18:00:00 +0000</pubDate>
+      <description>Un episodio corto.</description>
+      <enclosure url="https://media.example.com/episodio-5.mp3" length="1" type="audio/mpeg" />
+      <itunes:duration>1812</itunes:duration>
+    </item>
+
+    <item>
+      <title>Entrada del blog sin audio</title>
+      <link>https://example.com/podcast/blog/entrada-sin-audio/</link>
+      <pubDate>Wed, 02 Oct 2024 09:00:00 +0000</pubDate>
+      <description>Una entrada de texto, sin audio.</description>
+      <content:encoded><![CDATA[<p>Una entrada de texto, sin audio.</p>]]></content:encoded>
+    </item>
+
+    <item>
+      <title>Episodio 1: piloto</title>
+      <link>https://example.com/podcast/episodio-1/</link>
+      <pubDate>Mon, 05 Aug 2024 10:00:00 +0200</pubDate>
+      <description>Primer episodio.</description>
+      <enclosure url="https://media.example.com/episodio-1.mp3" length="1" type="audio/mpeg" />
+      <itunes:duration>7:55</itunes:duration>
+    </item>
+  </channel>
+</rss>

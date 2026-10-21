@@ -1,22 +1,48 @@
-.DS_Store
+# Dependencies and build output. `node_modules/` appears at the root (hoisted by
+# npm workspaces) and inside any package that needs its own copy.
 node_modules/
 dist/
+dist-ssr/
+/coverage
+/.nyc_output
+*.tsbuildinfo
 
-# local env files
-.env.local
-.env.*.local
+# Tool caches
+.eslintcache
+.cache/
+.vite/
+.turbo/
 
-# Log files
+# Environment
+#
+# The root `.env` feeds `docker-compose.yml`; `.env.example` is its committed
+# template. Everything else is local — this repository is PUBLIC, and the one
+# thing that must never land in it is a real credential.
+.env
+.env.*
+*.env
+!.env.example
+#
+# There are no per-package env files: both packages read the ROOT `.env`, the
+# backend through its config and the frontend through Vite's `envDir` (see
+# `packages/frontend/vite.config.ts`), which is why one file can serve
+# `docker-compose.yml`, Nest and the SPA build at once.
+
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-*.log
 lerna-debug.log*
-logs
+logs/
 
-# Editor directories and files
-.idea
-.vscode
+# Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 *.suo
 *.ntvs*
 *.njsproj
@@ -24,26 +50,38 @@ logs
 *.sw?
 .project
 .classpath
-.c9/
-*.launch
 .settings/
 *.sublime-workspace
 
-# IDE - VSCode
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+# OS
+.DS_Store
+Thumbs.db
 
+# MikroORM writes a schema snapshot per database; only the real one is tracked.
+# The test suites build their own databases and rewrite a snapshot each, so those
+# are regenerated, never committed. They sit next to the migrations, not at the
+# package root.
+packages/backend/src/database/migrations/.snapshot-gravindex_test_*.json
 
-# Tests
-/coverage
-/.nyc_output
+# Episode audio downloaded by `src/scripts/download-episodes.ts`, kept locally
+# so an offline process (waveform extraction) can read it without refetching
+# from gravina82.com. Regenerable from `episode.file`; never committed.
+packages/backend/data/episodes/
 
-.env.*
-!.env
-*.env
-!default.env
-!frontend/.env
+# Playwright output for the behaviour e2e suite (traces, screenshots, the
+# pristine-state baseline it writes between global setup and teardown).
+test/e2e/.artifacts/
+.local/
 
+# Local assistant state, never shared.
+/.claude/RESUME.md
+
+# Real saved copy of the gravina82 RSS feed: third-party content, kept on disk
+# for manual checks and never committed. The tests read `sample-feed.xml`.
+packages/backend/src/ingest/__fixtures__/gravina82-feed.xml
+
+# Content snapshot of a populated database (`npm run db:export`). It carries
+# episode descriptions copied from gravina82.com and the community's clips,
+# votes and listening history, so it stays local. Only `.gitkeep` is tracked,
+# because the Dockerfile COPYs this directory.
+packages/backend/seed/*.sql
