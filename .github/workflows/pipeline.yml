@@ -101,6 +101,13 @@ jobs:
         run: npm run test:db:up
       - name: Apply the migrations and load the fixture
         run: npm run test:db:seed
+      # ⚠️ The meta-tag and PWA groups hit the BACKEND directly (port 3001),
+      # which serves the built SPA out of `packages/frontend/dist`. A fresh
+      # checkout has no `dist/`, so without this the two groups fail with "the
+      # backend has no SPA build to serve" even though the Vite dev server the
+      # rest of the suite uses is perfectly fine.
+      - name: Build the SPA the backend serves
+        run: npm run build -w packages/frontend
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run the suite

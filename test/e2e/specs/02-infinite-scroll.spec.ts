@@ -35,7 +35,28 @@ async function readStorage(page: Page, key: string): Promise<string | null> {
  * was a race against the observer, and it lost about one run in ten.
  */
 async function clickLoadMore(page: Page, name: RegExp): Promise<void> {
-  await page.getByRole('button', { name }).click();
+  const button = page.getByRole('button', { name });
+
+  // ⚠️ The button lives at the sentinel, and the observer may pull the next
+  // batch WHILE Playwright is scrolling it into view: the list re-renders and
+  // the element under the cursor is replaced before the click lands. Locally
+  // that is invisible; on a slow CI runner it showed up as a 90 s timeout with
+  // "element was detached from the DOM, retrying".
+  //
+  // The locator is lazy, so each attempt finds the button as it is NOW, and
+  // `force` skips the actionability check that the re-render keeps
+  // invalidating. This is about making the click land, not about relaxing what
+  // the tests assert.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await button.click({ force: true, timeout: 10_000 });
+      break;
+    } catch (error) {
+      if (attempt >= 4) throw error;
+      await page.waitForTimeout(250);
+    }
+  }
+
   await page.waitForLoadState('networkidle');
 }
 
