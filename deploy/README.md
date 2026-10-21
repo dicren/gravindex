@@ -185,13 +185,21 @@ timers activos.
 
 Lo que ya está hecho en `prod.dicren.com`, por si hay que reconstruirlo:
 
-1. Debian 13, firewall con 22/80/443 abiertos (ya lo estaba).
+1. Debian 13, firewall con 22/80/443 abiertos (ya lo estaba) y la cadena
+   `forward` de `/etc/nftables.conf` con las reglas de `docker0`/`br-*`. Sin
+   ellas la política `drop` del host tira todo el tráfico reenviado y ni los
+   puertos publicados ni las peticiones salientes de los contenedores
+   funcionan.
 2. Docker Engine + plugin de Compose desde el repositorio oficial de Docker.
    `/etc/docker/daemon.json` con `live-restore` y rotación de logs por defecto.
 3. Usuario `deploy` sin contraseña, con la clave pública de GitHub Actions en
    `authorized_keys` y la regla de sudoers que permite solo `gravindex-deploy`.
+   `AllowUsers` de sshd tiene que incluirlo.
 4. `git clone https://github.com/dicren/gravindex.git /opt/gravindex`.
 5. `/opt/gravindex/.env` con los secretos, `PUBLIC_URL=https://indice.gravina82.com`
    e `IMAGE_TAG` del primer tag.
-6. `sudo deploy/server/install.sh`.
-7. Primer arranque, carga del seed y alta del administrador.
+6. `sudo deploy/server/install.sh` (instala scripts y unidades; **no** arranca
+   el stack, porque en un servidor nuevo todavía no hay imagen).
+7. El primer `ssh deploy@prod.dicren.com <tag>` (o un `systemctl start
+   gravindex.service` con la imagen ya cargada) levanta el stack. Después, el
+   seed y el alta del administrador.

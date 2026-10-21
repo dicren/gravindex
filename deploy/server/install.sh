@@ -36,7 +36,11 @@ install -m 0644 "$HERE/gravindex-backup.service" /etc/systemd/system/gravindex-b
 install -m 0644 "$HERE/gravindex-backup.timer" /etc/systemd/system/gravindex-backup.timer
 
 systemctl daemon-reload
-systemctl enable --now gravindex.service
+
+# ⚠️ `enable`, not `enable --now`: on a fresh server the image may not exist
+# yet, and the first `gravindex-deploy` is what starts the stack. Enabling it
+# here is what makes it come back on the next boot.
+systemctl enable gravindex.service
 systemctl enable --now gravindex-watchdog.timer
 systemctl enable --now gravindex-backup.timer
 

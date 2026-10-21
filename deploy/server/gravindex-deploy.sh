@@ -109,6 +109,12 @@ compose up -d --remove-orphans || die "docker compose up failed"
 
 if wait_healthy; then
   printf '%s\n' "$TAG" >"$STATE/deployed-tag"
+  # On a fresh server this is what puts the stack under systemd (and therefore
+  # under the watchdog, which refuses to act while the unit is inactive). On an
+  # already-running one it is a no-op: the unit is a `oneshot` that stays
+  # active, so `start` does not run its `up -d` again.
+  systemctl enable gravindex.service >/dev/null 2>&1 || true
+  systemctl start gravindex.service >/dev/null 2>&1 || true
   log "deployed $TAG"
   # Old images pile up at roughly 1 GB per tag; a week is enough to roll back.
   docker image prune -f --filter 'until=168h' >/dev/null 2>&1 || true
@@ -128,6 +134,8 @@ set_image_tag "$PREV"
 compose up -d --remove-orphans || die "rollback compose up failed"
 
 if wait_healthy; then
+  systemctl enable gravindex.service >/dev/null 2>&1 || true
+  systemctl start gravindex.service >/dev/null 2>&1 || true
   log "rollback to $PREV succeeded"
 else
   log "rollback to $PREV ALSO failed"
