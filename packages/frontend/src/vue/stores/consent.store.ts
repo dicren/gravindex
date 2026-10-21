@@ -15,7 +15,7 @@ export type ConsentStatus = ConsentDecision | 'unknown';
  * ⚠️ Namespaced, and deliberately nowhere near `gravindex.voter-token`. The two
  * are different things with different lifetimes: one is an anonymous
  * deduplication hint for votes, the other an analytics decision. Nothing reads
- * both (root `CLAUDE.md`, "Identity"), and withdrawing consent does not touch
+ * both (root `AGENTS.md`, "Identity"), and withdrawing consent does not touch
  * the token.
  */
 const STORAGE_KEY = 'gravindex.analytics-consent';
@@ -54,7 +54,7 @@ function writeStoredStatus(status: ConsentDecision): void {
  *
  * ⚠️ **Client state with no server behind it**, which is why it is a plain Pinia
  * store next to `notifications.store.ts` and `playback.store.ts` rather than
- * anything in `core/` (`packages/frontend/CLAUDE.md`, "Where Pinia Colada
+ * anything in `core/` (`packages/frontend/AGENTS.md`, "Where Pinia Colada
  * lives"). Nothing about a cookie choice is ever sent anywhere.
  *
  * ⚠️ **This store has no side effects on Google.** It records a decision;

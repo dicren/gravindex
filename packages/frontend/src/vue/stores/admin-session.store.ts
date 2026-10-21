@@ -19,7 +19,7 @@ import type { AdminCredentials } from '#/domain/auth/admin-session.entity';
  *
  * ⚠️ **Nothing here ever touches the anonymous voter token.** That one is an
  * unauthenticated deduplication hint in `localStorage`, is spoofable, and no
- * admin route trusts it (root `CLAUDE.md`, "Identity"). Two identities, two
+ * admin route trusts it (root `AGENTS.md`, "Identity"). Two identities, two
  * storages, no shared code path.
  */
 

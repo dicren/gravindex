@@ -3,7 +3,7 @@
 // of `GravWave`'s deterministic placeholder once an episode has been measured.
 //
 // ⚠️ Nothing in the disposable test database has ever been measured: the fixture
-// leaves the `waveform` column `NULL` everywhere (root `CLAUDE.md`). So this
+// leaves the `waveform` column `NULL` everywhere (root `AGENTS.md`). So this
 // group writes a deterministic waveform directly through SQL for one clip's
 // episode (`lib/db.ts`'s own reason for existing, used here to set up a write
 // rather than read one back) and resets it in `afterAll`, so the suite can run

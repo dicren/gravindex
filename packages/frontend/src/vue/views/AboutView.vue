@@ -11,7 +11,7 @@
  * ⚠️ That includes the typos. `Ayudame` (no accent), `sobretodo`, `ruls` for
  * `urls`, and `colaborar con en apartado técnico` are all part of the author's
  * text. They are somebody's voice, they are what a returning visitor has read
- * for six years, and they stay as they are (root `CLAUDE.md`).
+ * for six years, and they stay as they are (root `AGENTS.md`).
  * A spellcheck pass here is a content change and needs to be somebody's decision,
  * not a side effect of a refactor.
  *

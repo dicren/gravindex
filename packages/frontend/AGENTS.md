@@ -1,8 +1,8 @@
-# CLAUDE.md — frontend
+# AGENTS.md — frontend
 
-Context for `packages/frontend/`. Read the root `CLAUDE.md` first (project
-purpose, HTTP API, routes, env vars); this file only covers what is specific to
-this package.
+Working notes for coding agents inside `packages/frontend/`. Read the root
+`AGENTS.md` first (project purpose, HTTP API, routes, env vars); this file only
+covers what is specific to this package.
 
 > Keep in sync when the layer rules change, when the query/store layout moves,
 > or when a theme token is added or renamed.
@@ -12,7 +12,7 @@ this package.
 > frontend as it stands.
 >
 > ⚠️ **The UI is governed by this document, and the wire by its own tests.** The
-> wire is held by its tests (root `CLAUDE.md`); the screens are held by what is
+> wire is held by its tests (root `AGENTS.md`); the screens are held by what is
 > written here.
 >
 > ⚠️ **The admin surface keeps its own look** — white cards, `GravPagination`,
@@ -212,7 +212,7 @@ by hand.**
 
 ### The anonymous voter token
 
-The visitor's identity is never their IP address (root `CLAUDE.md`,
+The visitor's identity is never their IP address (root `AGENTS.md`,
 "Identity"). `crypto.randomUUID()`, falling back to a hand-built v4 over
 `crypto.getRandomValues` — a real case, not a theoretical one: a dev server over
 plain `http://` on a LAN has no `randomUUID`. Kept in **`localStorage` under
@@ -454,7 +454,7 @@ Mechanics worth knowing before editing it:
 
 ### Router (`vue/router/`)
 
-The route table is in the root `CLAUDE.md`. What lives here:
+The route table is in the root `AGENTS.md`. What lives here:
 
 - `createAppRouter()` is a **factory** (a test needs a second router over the
   same `window.history`), and it installs the admin guard itself so test routers
@@ -774,7 +774,7 @@ shaped by default and would try to `JSON.parse()` raw MP3 bytes otherwise.
 
 ### The endpoint it talks to
 
-`GET /episodes/:id/audio` (backend, `packages/backend/CLAUDE.md`) is a
+`GET /episodes/:id/audio` (backend, `packages/backend/AGENTS.md`) is a
 same-origin passthrough to `episode.file` — it exists **only** because
 gravina82.com sends no CORS headers, so this package cannot `fetch()` it
 directly. The backend does no audio processing at all; it is a byte pipe.
@@ -851,7 +851,7 @@ listened to, cut into a real clip, or forgotten. The episode list gains a third
 endpoint, no `openapi.json` change. A moment
 says *which episode, at which second, on which day somebody was listening* —
 a listening trail, and more personal than the vote this project already refuses
-to attach to a person (root `CLAUDE.md`, "Identity"). The only identity
+to attach to a person (root `AGENTS.md`, "Identity"). The only identity
 available would be `X-Voter-Token`, which lives in the same `localStorage`, so
 a server copy would be exactly as fragile and would cost the database its
 "not one personal column" property.
@@ -1516,7 +1516,7 @@ next one.
 Behaviour that only a browser can prove — the debounce, infinite scroll,
 cancellation, the URL contract, playback and the queue, the slider mid-gesture,
 the injected meta tags — lives in the repo-level Playwright suite (`test/e2e/`).
-See the root `CLAUDE.md`.
+See the root `AGENTS.md`.
 
 ## Traps
 

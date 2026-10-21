@@ -294,7 +294,7 @@ describe('admin surface (HTTP, against a real database)', () => {
      * ⚠️ A wrong password and an unknown username must be indistinguishable —
      * otherwise the endpoint answers "does this account exist?" to anyone who
      * asks, and there is no rate limiting in front of it (deferred with the
-     * proxy, see root CLAUDE.md).
+     * proxy, see root AGENTS.md).
      */
     it('answers a wrong password and an unknown user identically', async () => {
       const wrong = await login('wrong-password').expect(401);

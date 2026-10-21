@@ -71,7 +71,7 @@ npm run db:export      # refrescar el seed local (packages/backend/seed/) con lo
 
 # Onda de audio: medir la onda real de todos los episodios de una vez
 # (los nuevos se miden solos, encadenados tras cada ingesta — ver
-# packages/backend/CLAUDE.md, "Waveforms")
+# packages/backend/AGENTS.md, "Waveforms")
 docker compose exec gravindex-api node dist/waveform/waveform.cli.js
 ```
 
@@ -80,7 +80,7 @@ tiene clips, el contenedor de carga se aparta.
 
 > Los tests e2e corren contra su propia base descartable, nunca contra esta:
 > `npm run test:db:up && npm run test:db:seed` (carga el fixture sintético de
-> `test/testdb/fixture.sql`) y luego `npm run test:e2e`. Ver la `CLAUDE.md` de
+> `test/testdb/fixture.sql`) y luego `npm run test:e2e`. Ver la `AGENTS.md` de
 > la raíz, "Tests and validation".
 
 ## Modo desarrollo 🛠️

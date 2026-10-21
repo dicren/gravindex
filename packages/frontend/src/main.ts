@@ -14,7 +14,7 @@ import vuetify from '@/plugins/vuetify';
  * imported from `core/`. It caches, deduplicates and invalidates *for the UI*;
  * `core/application` use cases stay plain async functions with no framework
  * behind them. The lint boundaries reject a `@pinia/colada` import inside
- * `core/` outright — see `packages/frontend/CLAUDE.md`, "Where Pinia Colada
+ * `core/` outright — see `packages/frontend/AGENTS.md`, "Where Pinia Colada
  * lives".
  */
 createApp(App).use(createPinia()).use(PiniaColada).use(router).use(vuetify).mount('#app');

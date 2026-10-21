@@ -124,7 +124,7 @@ export function toQueuedClip(clip: {
  *
  * ⚠️ `durationSeconds` is `GET /episodes/:id/waveform`'s `to` where the caller
  * has it and `0` where it does not — the API has no duration field of its own
- * (root `CLAUDE.md`, "Data model": the column exists and is not surfaced). `0`
+ * (root `AGENTS.md`, "Data model": the column exists and is not surfaced). `0`
  * is a working value, not a hole: see `QueuedEpisode.end`.
  */
 export function toQueuedEpisode(

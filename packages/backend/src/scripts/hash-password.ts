@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcrypt';
 
 // The admin surface's first user is inserted BY HAND in the database
-// (root CLAUDE.md, "Settled implementation details"), which means the INSERT
+// (root AGENTS.md, "Settled implementation details"), which means the INSERT
 // has to carry an already-hashed password — a row with a plaintext one simply
 // fails to log in, silently and confusingly. This is the way to produce that
 // hash:

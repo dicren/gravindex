@@ -18,7 +18,7 @@
  *
  * ⚠️ **The anonymous voter token must never reach this file.** It is a
  * deduplication hint for votes, deliberately random and derived from nothing
- * (root `CLAUDE.md`, "Identity"); GA4 has an identifier of its own, gated behind
+ * (root `AGENTS.md`, "Identity"); GA4 has an identifier of its own, gated behind
  * consent. Joining the two would build exactly the personal-data trail the
  * schema is designed not to hold. Nothing here imports `#/domain/identity/...` or reads its
  * storage key, and a test fails if that changes.

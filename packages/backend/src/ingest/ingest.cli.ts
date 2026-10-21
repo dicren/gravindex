@@ -26,7 +26,7 @@ import { IngestService } from './ingest.service';
 // (`WAVEFORM_MAX_PER_RUN`, `WAVEFORM_ENABLED`) — this is the manual equivalent
 // of one cron tick, not a bulk backfill. A deliberate catch-up after a large
 // ingest (the feed can bring over a hundred new episodes at once — root
-// CLAUDE.md, "Ingestion") is `waveform.cli.ts`'s job: it downloads
+// AGENTS.md, "Ingestion") is `waveform.cli.ts`'s job: it downloads
 // concurrently and resumes, which this one-shot command does not.
 
 // ⚠️ Set BEFORE the context is created, and it is why this line is not just

@@ -7,7 +7,7 @@
  * ⚠️ **Read in the visitor's local zone, deliberately.** The API sends UTC and
  * `core/` parses it into an instant; printing `getDate()` and friends gives
  * local time. Switching to UTC here would move a handful of the oldest episodes
- * by a day, and the printed dates must not change (root `CLAUDE.md`).
+ * by a day, and the printed dates must not change (root `AGENTS.md`).
  *
  * ⚠️ Hand-rolled rather than `Intl.DateTimeFormat`, for the same reason: `Intl`
  * gives `12 de abril de 2009` in `es-ES` — lower-case month, and the locale is

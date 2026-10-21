@@ -16,7 +16,7 @@ import { registerAdminGuard } from './admin-guard';
  * clip view. That is deliberate, not a bug.
  *
  * History mode is on, so the server must rewrite unknown paths to
- * `index.html`. In the target the backend does that itself (root `CLAUDE.md`,
+ * `index.html`. In the target the backend does that itself (root `AGENTS.md`,
  * "Serving the SPA"); in dev, Vite does it out of the box.
  *
  * ⚠️ A factory, not a bare `createRouter(...)`, for one reason: a test needs to
@@ -58,7 +58,7 @@ export function createAppRouter() {
         // forced rather than chosen: `use-list-filters.ts` rebuilds the whole
         // query string from its own filters on every commit, so a `?a=2011`
         // added beside them would be wiped the moment somebody typed in the
-        // search box. See `packages/frontend/CLAUDE.md`, "The calendar".
+        // search box. See `packages/frontend/AGENTS.md`, "The calendar".
         //
         // ⚠️ Declared BEFORE `/episodes/:page?` for reading, not for matching:
         // vue-router ranks the static `calendario` segment above the parameter
@@ -109,7 +109,7 @@ export function createAppRouter() {
       },
 
       // ── The admin ──────────────────────────────────────────────────────────
-      // ⚠️ This is one of three deliberate additions (root `CLAUDE.md`). It exists because today an
+      // ⚠️ This is one of three deliberate additions (root `AGENTS.md`). It exists because today an
       // ugly cut or an abusive tag can only be removed with hand-written SQL
       // against production.
       //

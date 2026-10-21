@@ -9,7 +9,7 @@ import type { EpisodeRepository } from '#/domain/episodes/episode.repository';
  * is six requests of ~35 KB. An aggregate endpoint would be cheaper on the wire
  * and would cost a contract and a regenerated client — for a catalogue this
  * size that trade
- * is not worth taking (root `CLAUDE.md`, "Scale").
+ * is not worth taking (root `AGENTS.md`, "Scale").
  *
  * ⚠️ **This is not a list screen and must never become one.** It exists because
  * the calendar draws 208 months at once and cannot ask for a page; every list

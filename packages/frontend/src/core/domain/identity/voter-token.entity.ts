@@ -1,7 +1,7 @@
 /**
  * The anonymous voter token: a random UUID this browser generates once and
  * sends on every write (vote, create clip, add tag). It is not the visitor's
- * IP address and not anything else personal — root `CLAUDE.md`, "Identity: an
+ * IP address and not anything else personal — root `AGENTS.md`, "Identity: an
  * anonymous token".
  *
  * ⚠️ **Random, and derived from nothing.** Not a fingerprint, not a hash of

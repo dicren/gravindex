@@ -14,7 +14,7 @@ import { freshPinia, stubBrowserApis, testRouter } from '@/components/__tests__/
  * this file owns: **the defaults, the copy and the wiring.**
  *
  * ⚠️ The empty state is a joke somebody wrote, not filler
- * (`packages/frontend/CLAUDE.md`: "the empty states are jokes, not strings").
+ * (`packages/frontend/AGENTS.md`: "the empty states are jokes, not strings").
  * The assertion is character-for-character on purpose — a "tidied" version of
  * that sentence is a content change, and nothing else in the app would catch it.
  *

@@ -13,7 +13,7 @@ import { injectSocialMeta, matchSpaRoute, SocialMeta } from './spa-html';
 // The rule is one sentence long: everyone gets the SAME HTML. No `User-Agent`
 // sniffing, no bot list, no content that differs by visitor. A crawler and a
 // browser both receive `index.html` with the clip's meta tags in its `<head>`;
-// the browser ignores them and boots the SPA as usual. See root CLAUDE.md,
+// the browser ignores them and boots the SPA as usual. See root AGENTS.md,
 // "Serving the SPA, and social previews without a proxy".
 
 const SITE_NAME = 'Índice gravinero';

@@ -9,7 +9,7 @@ import { Migration } from '@mikro-orm/migrations';
  * its own step.
  *
  * ⚠️ **It creates no rows.** There is no seed, no CLI and no bootstrap INSERT
- * here: the first admin is inserted BY HAND (root CLAUDE.md, "Settled
+ * here: the first admin is inserted BY HAND (root AGENTS.md, "Settled
  * implementation details"), which means the statement has to carry an
  * already-hashed password — a plaintext one fails `bcrypt.compare` and the
  * login answers the same 401 it gives an unknown username, silently and

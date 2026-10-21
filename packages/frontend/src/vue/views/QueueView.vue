@@ -302,7 +302,7 @@ onUnmounted(endDrag);
 
     <!-- ⚠️ Said BEFORE the link is copied, not after. `?c=` carries two base62
          characters per clip id and has no room for a kind, and that format is a
-         public URL shape (root `CLAUDE.md`), so a queued episode cannot travel
+         public URL shape (root `AGENTS.md`), so a queued episode cannot travel
          in one. Silently sharing a shorter queue is the failure this line
          exists to prevent. -->
     <p v-if="queuedEpisodes > 0 && !queue.isEmpty" class="queue__notice grav-mono">
@@ -333,7 +333,7 @@ onUnmounted(endDrag);
           <!-- ⚠️ Only a row that may still move gets a handle: dragging one
                ahead of `currentIndex` would put it where it can never sound
                again. The empty span on the other rows keeps the five-track
-               grid intact — see `.i-row__gap` in the CLAUDE.md for the same
+               grid intact — see `.i-row__gap` in the AGENTS.md for the same
                trap in the library row. -->
           <span
             v-if="row.index > queue.currentIndex"

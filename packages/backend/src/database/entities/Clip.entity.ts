@@ -45,7 +45,7 @@ export class Clip {
   // The anonymous voter token (a UUID the client keeps in `localStorage`). It
   // is not the visitor's IP address. ⚠️ Nullable, and because it is
   // client-supplied it is a moderation trail, never proof of identity. See root
-  // CLAUDE.md, "Identity".
+  // AGENTS.md, "Identity".
   @ApiHideProperty()
   @Property({ length: 36, nullable: true, hidden: true })
   token?: string | null;
@@ -72,5 +72,5 @@ export class Clip {
   // ⚠️ `up` / `down` / `points` are deliberately NOT here. They are aggregated
   // from the `vote` table at read time, so they are not columns. They belong in a response DTO now — their
   // presence on the list and their ABSENCE on `GET /clips/:id` is a frontend
-  // contract (root CLAUDE.md, "Vote counts are not a column").
+  // contract (root AGENTS.md, "Vote counts are not a column").
 }

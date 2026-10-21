@@ -5,7 +5,7 @@
 #
 # ⚠️ Never touches the `db` volume: `docker compose down` (no `-v`) only drops
 # containers and the network, and `gravindex-db` must never be wiped (see the
-# root CLAUDE.md, "Running it"). Never touches the `test` profile either —
+# root AGENTS.md, "Running it"). Never touches the `test` profile either —
 # `docker compose down`/`up` without `--profile` only reaches the
 # default-profile services, so `gravindex-test-db` is left exactly as it was.
 set -euo pipefail

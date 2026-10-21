@@ -143,7 +143,7 @@ describe('IngestScheduler', () => {
     });
 
     // The same disabled-value vocabulary as INGEST_CRON — see the root
-    // CLAUDE.md.
+    // AGENTS.md.
     it.each(['off', 'false', 'no', '0', ''])(
       'never runs when WAVEFORM_ENABLED is %p, but ingestion still does',
       async (value) => {

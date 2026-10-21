@@ -10,7 +10,7 @@ import { Clip } from './Clip.entity';
 // previous row.
 // Postgres does not collide NULLs in a unique constraint, so rows without a
 // token (all `token = null`) are fine and the dedup applies only to votes that
-// carry one. That is intended — see root CLAUDE.md, "Identity".
+// carry one. That is intended — see root AGENTS.md, "Identity".
 @Entity()
 @Unique({ properties: ['clip', 'token'] })
 export class Vote {

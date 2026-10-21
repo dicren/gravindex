@@ -6,7 +6,7 @@ import { foldForSearch } from '@/utils/fold-accents';
  * The episodes this browser has marked a moment on, as list rows.
  *
  * ⚠️ **`Con mis momentos` is the one filter the server cannot answer** (root
- * `CLAUDE.md`, "Mis momentos"): the marks live in `localStorage` and nothing
+ * `AGENTS.md`, "Mis momentos"): the marks live in `localStorage` and nothing
  * about them ever reaches the API. So the rows are assembled here, one
  * `GET /episodes/:id` per marked episode.
  *

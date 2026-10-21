@@ -46,7 +46,7 @@ export class AdminIdentityDto {
  *
  * ⚠️ Deliberately NOT the public clip shape: no `up`/`down`/`points` (those are
  * aggregated at read time and their presence/absence is a frontend contract —
- * root CLAUDE.md, "Vote counts are not a column") and no populated episode. The
+ * root AGENTS.md, "Vote counts are not a column") and no populated episode. The
  * admin surface owes nothing to the public contract and can afford to be flat.
  */
 export class AdminClipDto {

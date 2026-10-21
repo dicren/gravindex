@@ -5,7 +5,7 @@ import type { Tag } from '#/domain/tags/tag.entity';
  *
  * ⚠️ Deliberately **not** the public `Clip`. No `up`/`down`/`points` (those are
  * aggregated at read time and their absence is a contract of its own — root
- * `CLAUDE.md`, "Vote counts are not a column") and no populated episode, only
+ * `AGENTS.md`, "Vote counts are not a column") and no populated episode, only
  * its id. The admin surface is new, and being flat is
  * what keeps it honest: every field here is a field you can edit or delete.
  */
@@ -38,7 +38,7 @@ export interface AdminClipChanges {
  * Renaming one tag **on one clip**.
  *
  * ⚠️ There is no site-wide rename: a tag is the `(clip, tag)` pair and nothing
- * else (root `CLAUDE.md`, "Data model"), so "renaming Zombies everywhere" is
+ * else (root `AGENTS.md`, "Data model"), so "renaming Zombies everywhere" is
  * not an operation the API has. Editing the tag of one clip is, and that is
  * what this is. Do not build a UI that implies otherwise.
  */

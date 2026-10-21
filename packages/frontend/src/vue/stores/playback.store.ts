@@ -9,7 +9,7 @@ import { computed, ref, shallowRef } from 'vue';
  * means the player can be tested with four numbers and a string, and that a
  * change to the clip DTO cannot break playback. The card maps
  * `(clip, episode)` into this — `src` is the EPISODE's remote mp3, because a
- * clip has no audio file of its own (root `CLAUDE.md`).
+ * clip has no audio file of its own (root `AGENTS.md`).
  *
  * ⚠️ **`kind` is required, and it is not decoration** (2026-08-25). Ids are only
  * unique *within* their kind — clip 93 and episode 93 both exist — so without it

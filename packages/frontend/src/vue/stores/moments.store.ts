@@ -200,7 +200,7 @@ function byPosition(a: Moment, b: Moment): number {
  * on which day you were listening*: a trail of when somebody laughed, which is
  * more personal than the vote this project already refuses to attach to a
  * person. The database was deliberately born without a single personal column
- * (root `CLAUDE.md`, "Identity"), and putting this in it would undo that to buy
+ * (root `AGENTS.md`, "Identity"), and putting this in it would undo that to buy
  * nothing — the only identity available is `X-Voter-Token`, which lives in this
  * same `localStorage`, so clearing site data would take the marks with it
  * either way.

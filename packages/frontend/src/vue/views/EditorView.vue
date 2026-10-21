@@ -6,7 +6,7 @@
  * You pick a start and an end over the episode's **remote mp3**, streamed and
  * seeked in place, give the cut a title and some tags, and publish it. There is
  * no audio file at the other end: a clip is `(episode, start, end, title)` and
- * the player seeks to `start` and stops at `end` (root `CLAUDE.md`).
+ * the player seeks to `start` and stops at `end` (root `AGENTS.md`).
  *
  * ⚠️ **`:title` is `"<id>-<slug>"` and only the leading integer is parsed**, the
  * same as `/episode/:title`. `/creator/63` and `/creator/63-episodio-86` are the

@@ -3,7 +3,7 @@ import { Entity, PrimaryKey, Property } from '@mikro-orm/decorators/legacy';
 import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 
 // The admin account table — the one addition to the content tables (root
-// CLAUDE.md, "The API contract"). Without it an ugly cut or an abusive tag can
+// AGENTS.md, "The API contract"). Without it an ugly cut or an abusive tag can
 // only be removed with hand-written SQL; this is the identity behind the
 // endpoints that exist instead.
 //
@@ -13,7 +13,7 @@ import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 // only credential in this system.
 //
 // ⚠️ There is no registration endpoint, no seed and no bootstrap migration:
-// **the first user is inserted by hand** (root CLAUDE.md, "Settled
+// **the first user is inserted by hand** (root AGENTS.md, "Settled
 // implementation details"), which is why `passwordHash` is what the column
 // holds and why `npm run hash-password` exists. A row carrying a plaintext
 // password simply never logs in — `bcrypt.compare` returns false and the

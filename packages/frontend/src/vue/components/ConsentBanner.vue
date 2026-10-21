@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The cookie banner — hand-rolled, no library (root `CLAUDE.md`, "Analytics").
+ * The cookie banner — hand-rolled, no library (root `AGENTS.md`, "Analytics").
  *
  * ⚠️ **It is a gate, not a notice.** GA4 is not in `index.html` and nothing is
  * requested from Google until somebody presses "Aceptar": the tag is loaded by

@@ -1,6 +1,6 @@
 /**
  * A tag is free text and nothing else — there is no tag table in the database,
- * a tag *is* the `(clip, tag)` pair (root `CLAUDE.md`, "Data model"). So the
+ * a tag *is* the `(clip, tag)` pair (root `AGENTS.md`, "Data model"). So the
  * domain type is genuinely a string, and giving it a name is the point: it
  * documents that `GET /tags` returns identities, not labels, and that matching
  * against `GET /clips?tags[]=…` is EXACT — case- and accent-sensitive.

@@ -5,7 +5,7 @@ import {
 } from '../local-storage-voter-token.provider';
 import { isVoterToken } from '#/domain/identity/voter-token.entity';
 
-// The anonymous voter token (root CLAUDE.md, "Identity"). Everything here runs
+// The anonymous voter token (root AGENTS.md, "Identity"). Everything here runs
 // with no browser and no server — the whole point of keeping it in `core/`.
 
 const STORAGE_KEY = 'gravindex.voter-token';

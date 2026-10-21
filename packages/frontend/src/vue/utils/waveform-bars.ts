@@ -22,7 +22,7 @@
  * distinguishable from the next.
  */
 
-/** The most `GET /episodes/:id/waveform` will return (root `CLAUDE.md`). */
+/** The most `GET /episodes/:id/waveform` will return (root `AGENTS.md`). */
 export const MAX_WAVEFORM_POINTS = 2000;
 
 /**

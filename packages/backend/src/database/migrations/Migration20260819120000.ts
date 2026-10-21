@@ -14,7 +14,7 @@ import { Migration } from '@mikro-orm/migrations';
  *
  * ⚠️ **Nothing truncates the database this column actually matters in.**
  * `gravindex-db` — where the running app writes a waveform once computed — is
- * never reset or reloaded by anything in this repository (root CLAUDE.md,
+ * never reset or reloaded by anything in this repository (root AGENTS.md,
  * "Running it"), so once a row is measured it stays measured. The disposable
  * `gravindex-test-db` is loaded from a fixture with no waveforms of its own and
  * has no bearing on production data.

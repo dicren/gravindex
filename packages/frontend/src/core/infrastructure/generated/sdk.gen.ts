@@ -252,7 +252,7 @@ export const episodesControllerGetWaveform = <ThrowOnError extends boolean = fal
 /**
  * A same-origin passthrough to the episode's mp3, for cutting a clip client-side
  *
- * gravina82.com sends no `Access-Control-*` headers, so the frontend cannot `fetch()` it directly to read MP3 frames out of a `Range` slice — which is how a clip is cut entirely in the browser, without a server-side re-encode. This endpoint forwards the incoming `Range` verbatim and streams the upstream response back untouched; **no audio processing happens in this process**. Playback is unaffected — the player still loads gravina82.com directly. No `Range` header serves the whole file. ⚠️ No cap on the requested span and nothing rate-limits this endpoint — a recorded, deliberate gap, see the root CLAUDE.md, "Known gaps".
+ * gravina82.com sends no `Access-Control-*` headers, so the frontend cannot `fetch()` it directly to read MP3 frames out of a `Range` slice — which is how a clip is cut entirely in the browser, without a server-side re-encode. This endpoint forwards the incoming `Range` verbatim and streams the upstream response back untouched; **no audio processing happens in this process**. Playback is unaffected — the player still loads gravina82.com directly. No `Range` header serves the whole file. ⚠️ No cap on the requested span and nothing rate-limits this endpoint — a recorded, deliberate gap, see the root AGENTS.md, "Known gaps".
  */
 export const episodesControllerGetAudio = <ThrowOnError extends boolean = false>(
   options: Options<EpisodesControllerGetAudioData, ThrowOnError>,

@@ -201,7 +201,7 @@ test.describe('the mobile filter sheet', () => {
     // ⚠️ The badge counts the FILTERS, not the results — which is why this does
     // not wait for a row. `?search=cancion&tags=Cine` is in fact one of the
     // combinations that matches nothing: `search` and `tags[]` are deliberately
-    // not independent (root `CLAUDE.md`), and the count on the button has to be
+    // not independent (root `AGENTS.md`), and the count on the button has to be
     // right either way.
     await gotoApp('/?search=cancion&tags=Cine');
 

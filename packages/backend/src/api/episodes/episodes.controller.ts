@@ -92,7 +92,7 @@ export class EpisodesController {
       'processing happens in this process**. Playback is unaffected — the player still loads ' +
       'gravina82.com directly. No `Range` header serves the whole file. ⚠️ No cap on the ' +
       'requested span and nothing rate-limits this endpoint — a recorded, deliberate gap, see ' +
-      'the root CLAUDE.md, "Known gaps".',
+      'the root AGENTS.md, "Known gaps".',
   })
   @ApiHeader({
     name: 'Range',

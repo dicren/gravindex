@@ -28,7 +28,7 @@ import { Migration } from '@mikro-orm/migrations';
  *
  * 2. **`token` is nullable everywhere it exists, and that is intended.** It is
  *    the anonymous per-browser UUID that stands in for identity, and it is not
- *    the visitor's IP address (root CLAUDE.md, "Identity"). Postgres does not
+ *    the visitor's IP address (root AGENTS.md, "Identity"). Postgres does not
  *    collide NULLs in a unique constraint, so a row without a token never blocks
  *    the dedup, which binds only the votes that carry one. The cost is that
  *    losing the token allows one more vote: noise, and the price of a database
@@ -114,12 +114,12 @@ export class Migration20260816013825 extends Migration {
   // holds clips, votes and tags contributed by listeners; the base class's
   // `down()` is a silent no-op, and a generated one would have been a five-table
   // `drop` reachable by a typo. ⚠️ There is no script anywhere in this repo that
-  // rebuilds it from scratch, on purpose — see the root `CLAUDE.md`, "Running
+  // rebuilds it from scratch, on purpose — see the root `AGENTS.md`, "Running
   // it". A deliberate `docker volume rm gravindex_db` is the only way, and it is
   // meant to be inconvenient.
   override down(): void | Promise<void> {
     throw new Error(
-      'The schema baseline is not revertible. There is no script that rebuilds this database from scratch — see the root CLAUDE.md, "Running it".',
+      'The schema baseline is not revertible. There is no script that rebuilds this database from scratch — see the root AGENTS.md, "Running it".',
     );
   }
 }

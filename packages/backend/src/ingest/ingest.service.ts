@@ -6,7 +6,7 @@ import { FeedClient } from './feed-client';
 import { parseFeed } from './feed-parser';
 
 // Episode ingestion, driven by the podcast's RSS feed — see the backend
-// CLAUDE.md, "Ingestion".
+// AGENTS.md, "Ingestion".
 //
 // ⚠️ This class has NO HTTP surface and must never grow one: an endpoint here
 // would be an unauthenticated GET that fires outbound requests and writes to the

@@ -73,7 +73,7 @@ export class AdminService {
    *    still on the front page. Correctness that depends on remembering is not
    *    correctness.
    *  - **Vote aggregates stay honest for free.** `up` is computed from the
-   *    `vote` table at read time (root CLAUDE.md, "Vote counts are not a
+   *    `vote` table at read time (root AGENTS.md, "Vote counts are not a
    *    column"). Deleting the votes with the clip means every vote row that
    *    exists points at a clip that exists. Soft delete would leave orphan votes
    *    that any future global aggregate (or a row-count check) would silently

@@ -160,7 +160,7 @@ function withVote(clip: ClipListItem, outcome: VoteOutcome): ClipListItem {
  * store is not a query cache and cannot be walked from here.
  *
  * ⚠️ This is the one deliberate exception to "writes invalidate"
- * (`packages/frontend/CLAUDE.md`, "Where Pinia Colada lives"). The counts are
+ * (`packages/frontend/AGENTS.md`, "Where Pinia Colada lives"). The counts are
  * adjusted from the response's `{ add, delete }`, and the site has felt instant
  * ever since; refetching a whole page of clips to
  * learn that one number went up by one would be a visible regression, on the

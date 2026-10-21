@@ -8,7 +8,7 @@ import { IngestService } from './ingest.service';
 
 // ⚠️ No controller, and that is the design — not an omission to be filled in.
 // Ingestion has **no HTTP surface at all**, protected or otherwise; it runs on
-// a schedule (`IngestScheduler`) or from `ingest.cli.ts`. See root CLAUDE.md,
+// a schedule (`IngestScheduler`) or from `ingest.cli.ts`. See root AGENTS.md,
 // "The API contract", item 2.
 //
 // ⚠️ `WaveformModule` is imported here, not the other way around: ingestion

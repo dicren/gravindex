@@ -77,7 +77,7 @@ describe('the credit that moved out of the footer', () => {
 
     expect(credit.text()).toContain('por dicren para');
     expect(credit.text()).toContain('gravina82');
-    // ⚠️ Who owns the content. The root `CLAUDE.md` opens with it, and it is the
+    // ⚠️ Who owns the content. The root `AGENTS.md` opens with it, and it is the
     // one sentence the site is obliged to carry.
     expect(credit.text()).toContain('todo el contenido es de gravina82');
 

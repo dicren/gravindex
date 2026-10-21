@@ -18,7 +18,7 @@ export interface WaveformTotalRow {
 // ⚠️ Deliberately its own round trip, before `buildWaveformSliceQuery`: the
 // byte range to ask Postgres for depends on how long the stored waveform IS,
 // and there is no way to know that without asking first. At this project's
-// scale (~72 KB at most, per the root CLAUDE.md) two small round trips cost
+// scale (~72 KB at most, per the root AGENTS.md) two small round trips cost
 // nothing next to the one avoided — sending the whole column across the
 // socket for a request that only wanted a few seconds of it.
 export function buildWaveformTotalQuery(episodeId: number): SqlFragment {

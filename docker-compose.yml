@@ -193,7 +193,7 @@ services:
   #
   # `test:e2e` needs to reset and reload a Postgres to the exact pristine state
   # to mean anything, and `gravindex-db` is never wiped (see
-  # `docker/seed.sh` and the root CLAUDE.md, "Tests and validation"). This is
+  # `docker/seed.sh` and the root AGENTS.md, "Tests and validation"). This is
   # that database: its own container, its own volume, loaded from the synthetic
   # fixture `test/testdb/fixture.sql`, freely reset by `npm run test:db:reset`.
   # Gated behind `profiles: [test]`, so a plain `docker compose up` never starts
@@ -224,7 +224,7 @@ services:
 volumes:
   # Named, not a bind mount: this is the database that ships to production.
   # ⚠️ Nothing in this repository deletes it — see `docker/seed.sh` and the
-  # root CLAUDE.md, "Running it". If you genuinely need to wipe it,
+  # root AGENTS.md, "Running it". If you genuinely need to wipe it,
   # that is a deliberate `docker volume rm gravindex_db` by hand, not a
   # one-line script.
   db:

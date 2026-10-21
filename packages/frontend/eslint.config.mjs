@@ -20,7 +20,7 @@ const CORE_ELEMENTS = ['domain', 'application', 'infrastructure', 'config'];
  * ⚠️ Packages that make a file part of the delivery layer, wherever it sits.
  * `@pinia/colada` is the one that matters most: a `useQuery` inside a use case
  * inverts the dependency rule this whole layout exists to enforce, and
- * `packages/frontend/CLAUDE.md` ("Where Pinia Colada lives") says so in prose.
+ * `packages/frontend/AGENTS.md` ("Where Pinia Colada lives") says so in prose.
  * This is that prose, made mechanical.
  */
 const UI_ONLY_PACKAGES = ['vue', 'vue-router', 'vuetify', 'vuetify/**', 'pinia', '@pinia/colada'];

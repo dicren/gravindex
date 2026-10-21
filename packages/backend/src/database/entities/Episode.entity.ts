@@ -18,7 +18,7 @@ export class Episode {
   title!: string;
 
   // Cover image URL. The RSS feed has no per-entry image, so ingestion falls
-  // back to the channel image — see the backend CLAUDE.md, "Ingestion".
+  // back to the channel image — see the backend AGENTS.md, "Ingestion".
   @Property({ length: 255 })
   cover!: string;
 
@@ -49,7 +49,7 @@ export class Episode {
 
   // Waveform peaks: one unsigned byte per `1 / WAVEFORM_POINTS_PER_SECOND`
   // seconds of audio, the whole episode, computed offline by
-  // `src/waveform/` from the downloaded mp3 — see that module's CLAUDE.md
+  // `src/waveform/` from the downloaded mp3 — see that module's AGENTS.md
   // section for the format. Never the full episode's worth reaches the
   // browser: `GET /episodes/:id/waveform` slices and resamples server-side.
   //
@@ -60,9 +60,9 @@ export class Episode {
   //
   // ⚠️ Nothing wipes this column: `gravindex-db` — the database this value
   // lives in — is never truncated or reloaded by anything in this repo
-  // (see the root CLAUDE.md, "Running it"). It IS included in `npm run
+  // (see the root AGENTS.md, "Running it"). It IS included in `npm run
   // db:export`'s snapshot once computed, since that dumps every column of
-  // `episode` verbatim — see `packages/backend/CLAUDE.md`, "Waveforms", for the
+  // `episode` verbatim — see `packages/backend/AGENTS.md`, "Waveforms", for the
   // size consequence of that. The disposable `gravindex-test-db` that
   // `npm run test:db:seed` reloads is a different database entirely and has no
   // bearing on this one.

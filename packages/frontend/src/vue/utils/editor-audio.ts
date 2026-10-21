@@ -35,7 +35,7 @@ export interface EditorAudio {
 }
 
 /**
- * ⚠️ The episode's mp3 is **remote and never proxied** (root `CLAUDE.md`): the
+ * ⚠️ The episode's mp3 is **remote and never proxied** (root `AGENTS.md`): the
  * browser streams it and seeks inside it, which is why every seek here is
  * debounced rather than fired per pointer move.
  */

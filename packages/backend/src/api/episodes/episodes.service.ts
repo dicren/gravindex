@@ -114,7 +114,7 @@ export class EpisodesService {
     const totalBytes = totalRow.total_bytes ?? 0;
     if (totalBytes === 0) {
       // The episode exists but nothing has measured it yet — an ordinary,
-      // temporary state (see the root CLAUDE.md, "waveform"), not a 404.
+      // temporary state (see the root AGENTS.md, "waveform"), not a 404.
       // The frontend falls back to `GravWave`'s drawn placeholder.
       return EMPTY_WAVEFORM(from, query.to ?? from);
     }
@@ -149,7 +149,7 @@ export class EpisodesService {
   // in this process at all. It exists only because `episode.file`'s host sends
   // no CORS headers — the frontend cuts a clip client-side by reading MP3
   // frames out of `Range` slices, and needs a same-origin host to `fetch()`
-  // them from. See the root CLAUDE.md, "Audio download".
+  // them from. See the root AGENTS.md, "Audio download".
   async getAudio(id: number, range: string | undefined, res: Response): Promise<StreamableFile> {
     const episode = await this.em.findOne(Episode, id, { fields: ['file'] });
     if (episode === null) {

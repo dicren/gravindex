@@ -19,7 +19,7 @@ const BCRYPT_SALT_ROUNDS = 10;
  * password, a row whose `password_hash` was inserted in plaintext. A different
  * 404/401 per case would turn the endpoint into a user-enumeration oracle, and
  * this system has a handful of accounts and no rate limiting in front of it
- * (root CLAUDE.md: rate limiting was deferred with the proxy).
+ * (root AGENTS.md: rate limiting was deferred with the proxy).
  */
 const INVALID_CREDENTIALS = 'Invalid username or password.';
 

@@ -8,7 +8,7 @@
     are jokes someone wrote, and this screen deliberately is not one.
 
     `.error-page` and `.glitch` (which reads `data-text` in its pseudo-elements)
-    belong to the gravinero theme — see `packages/frontend/CLAUDE.md`, "The
+    belong to the gravinero theme — see `packages/frontend/AGENTS.md`, "The
     gravinero theme is preserved". This view owns no styling of its own so the
     effect keeps living in exactly one place.
 

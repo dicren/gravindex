@@ -17,7 +17,7 @@ export interface UseRandomClipReturn {
  * ⚠️ There is no `GET /clips/random` — the API answers pages, so this spends
  * two reads: one `limit=1` call to learn `total`, then a second `limit=1` call
  * at a page drawn from `[1, total]`. At this project's scale (root
- * `CLAUDE.md`: 180 clips) that is two trivial queries, not a search worth
+ * `AGENTS.md`: 180 clips) that is two trivial queries, not a search worth
  * optimising away.
  */
 export function useRandomClip(): UseRandomClipReturn {

@@ -1,8 +1,8 @@
-# CLAUDE.md — backend
+# AGENTS.md — backend
 
-Context for `packages/backend/`. Read the root `CLAUDE.md` first (project
-purpose, HTTP API table, data model, env vars); this file only covers what is
-specific to this package.
+Working notes for coding agents inside `packages/backend/`. Read the root
+`AGENTS.md` first (project purpose, HTTP API table, data model, env vars); this
+file only covers what is specific to this package.
 
 > Keep in sync when the module layout, the persistence setup, or any of the
 > hazards below changes.
@@ -111,7 +111,7 @@ JavaScript API (`typescript` there exports a Go binary), so `ts-jest` and
 ## Configuration
 
 `ConfigModule.forRoot({ envFilePath: ['.env.<NODE_ENV>', '.env', '../../.env'] })`
-— the **root `.env`** is the real one; see the root `CLAUDE.md`, "Environment"
+— the **root `.env`** is the real one; see the root `AGENTS.md`, "Environment"
 for the keys. ⚠️ **Real environment variables win over the file**
 (`@nestjs/config` only assigns a key that is not already in `process.env`),
 which is exactly what makes the docker case — values injected, no file at all —
@@ -152,7 +152,7 @@ Things the entities encode that are easy to undo by accident:
   `(clip_id, token)` already builds a btree whose leading column is `clip_id`,
   and a second index would be dead weight.
 - **`up` and `points` are not columns and are not on the entity.** They are
-  aggregated at read time and live in response DTOs — see the root `CLAUDE.md`,
+  aggregated at read time and live in response DTOs — see the root `AGENTS.md`,
   "Vote counts are not a column". ⚠️ **`down` is on no payload**; the
   `vote.value` column exists, and only `1` may be written to it.
 - ⚠️ **`end` is a reserved word in SQL.** Every hand-written statement touching
@@ -327,7 +327,7 @@ to the caller only after `open()` already returned), upstream `200` (ignoring
 the `Range`) → reforwarded as-is.
 
 ⚠️ **No cap on the requested span, and nothing rate-limits this endpoint.**
-Deliberate — see the root `CLAUDE.md`, "Known gaps". It can only ever serve
+Deliberate — see the root `AGENTS.md`, "Known gaps". It can only ever serve
 files already named in the `episode` table, which is what keeps it from being
 an open proxy, but a single request can still ask for a whole episode (~90 MB).
 
@@ -431,7 +431,7 @@ on no DTO. `points` exists and is simply equal to `up`.
 ⚠️ **No reverse proxy and no `User-Agent` detection anywhere.** Everyone —
 browser and crawler alike — receives the same `index.html`; the browser ignores
 the meta tags and boots the SPA. There is no social-preview route; the rationale
-is in the root `CLAUDE.md`.
+is in the root `AGENTS.md`.
 
 `registerSpa()` mounts two things on the Express adapter, in this order: static
 assets (`index: false` — without it Express answers `/` with the raw
@@ -741,7 +741,7 @@ environment variable. They never touch `gravindex`. Their harnesses live in
 `ValidationPipe` options), so the two cannot drift.
 
 Beyond this package: a Playwright **behaviour e2e** suite drives the real
-browser. See the root `CLAUDE.md`, "Tests and validation" — that suite, not this
+browser. See the root `AGENTS.md`, "Tests and validation" — that suite, not this
 file, is what pins behaviour.
 
 ## Known debt and deliberate gaps
@@ -759,4 +759,4 @@ file, is what pins behaviour.
   *create* one, but it does not rewrite existing rows.
 - **The runtime image carries everything** — the API, the SPA build, `psql` and
   `ffmpeg` — so there is no separate container to deploy — see the root
-  `CLAUDE.md`, "Deployment".
+  `AGENTS.md`, "Deployment".

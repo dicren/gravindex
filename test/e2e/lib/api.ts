@@ -9,7 +9,7 @@
 import { API_URL } from './constants';
 
 /** ⚠️ A tag arrives as the `(clipId, tag)` pair, not as a bare string — a tag IS
- *  that pair, there is no tag table (root `CLAUDE.md`, "Data model"). */
+ *  that pair, there is no tag table (root `AGENTS.md`, "Data model"). */
 export interface TagJson {
   clipId: number;
   tag: string;

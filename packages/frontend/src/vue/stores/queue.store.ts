@@ -365,7 +365,7 @@ export const useQueueStore = defineStore('queue', () => {
    * ⚠️ **The index a row carries is not its position in this array.** `clips`
    * (below) used to be the only view and silently closed the gap left by an id
    * still being fetched — fine while nothing compared positions across it, but
-   * `/cola`'s history split (`packages/frontend/CLAUDE.md`, "The queue") needs
+   * `/cola`'s history split (`packages/frontend/AGENTS.md`, "The queue") needs
    * `currentIndex` to line up with a real position even mid-hydration, or a
    * clip resolved after its neighbours would land on the wrong side of the cut.
    */

@@ -3,7 +3,7 @@
 //
 // ⚠️ Local by construction. Nothing here may ever point at
 // `indice.gravina82.com` or any other server that is not this machine — see the
-// repo's `CLAUDE.md`. The one media host that appears at all (`media.example.com`,
+// repo's `AGENTS.md`. The one media host that appears at all (`media.example.com`,
 // which serves the fixture's mp3s and cover images) is **intercepted, never
 // requested**: `lib/media.ts` answers for it.
 

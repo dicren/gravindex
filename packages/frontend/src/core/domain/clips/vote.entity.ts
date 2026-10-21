@@ -43,7 +43,7 @@ export interface VoteCounts extends VoteTally {
  * now — "changing your mind" needed a second value to change to — and the field
  * stays because it is what the server sends and what `applyVote` is arithmetic
  * over. The UI adjusts its counters from these rather than refetching, which
- * `packages/frontend/CLAUDE.md` calls out as behaviour that must survive.
+ * `packages/frontend/AGENTS.md` calls out as behaviour that must survive.
  */
 export type VoteOutcome =
   | { readonly status: 'recorded'; readonly added: VoteValue; readonly removed: 0 }

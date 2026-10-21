@@ -246,7 +246,7 @@ describe('withdrawing', () => {
 
 describe('the module itself', () => {
   it('never reads the anonymous voter token, by construction', async () => {
-    // ⚠️ The rule from the root `CLAUDE.md`: the voter token is a deduplication
+    // ⚠️ The rule from the root `AGENTS.md`: the voter token is a deduplication
     // hint for votes and GA4 has an identifier of its own. Joining them would
     // build a personal-data trail the schema is designed not to hold. Asserted
     // against the source because the failure mode is an import nobody notices.

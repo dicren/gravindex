@@ -4,7 +4,7 @@
  *
  * ⚠️ Both sentences are verbatim, the upside-down © and the `&hearts;`
  * included. This is the one place the app says who owns the content, and the
- * attribution to gravina82 is not decoration — the root `CLAUDE.md` opens with
+ * attribution to gravina82 is not decoration — the root `AGENTS.md` opens with
  * it. Do not tidy the phrasing.
  *
  * ⚠️ The version is `__APP_VERSION__`, a build-time constant defined in

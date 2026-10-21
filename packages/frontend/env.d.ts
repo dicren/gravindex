@@ -22,7 +22,7 @@ interface ImportMetaEnv {
    * ⚠️ **Absent is a working configuration, not a missing one.** With no id the
    * app loads no analytics, sets no cookie and shows no consent banner — there
    * would be nothing to consent to. That is the state of this repository, which
-   * is public and where no real id is ever committed (root `CLAUDE.md`), and the
+   * is public and where no real id is ever committed (root `AGENTS.md`), and the
    * state of every development machine unless somebody sets one.
    *
    * Nothing loads it before the visitor accepts, either: the tag is injected at

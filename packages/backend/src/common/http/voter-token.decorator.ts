@@ -1,6 +1,6 @@
 import { BadRequestException, createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-// The anonymous per-browser identity (root CLAUDE.md, "Identity"). It is not
+// The anonymous per-browser identity (root AGENTS.md, "Identity"). It is not
 // the visitor's IP address. The client generates a UUID once, keeps it in
 // `localStorage`, and sends it on writes.
 //

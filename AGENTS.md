@@ -1,14 +1,15 @@
-# CLAUDE.md
+# AGENTS.md
 
-Context for working in this repository. Read this before making changes.
-`packages/backend/` and `packages/frontend/` each have their own `CLAUDE.md` —
-read the relevant one too when working inside that folder.
+Working notes for coding agents in this repository. Read this before making
+changes. `packages/backend/AGENTS.md` and `packages/frontend/AGENTS.md` cover
+what is specific to each package — read the relevant one too when working inside
+that folder, and when two files disagree the nearer one wins.
 
 > **What belongs in THIS file.** The index and the cross-package contract: what
 > exists, where it lives, and the facts a reader of one side must know about the
 > other (HTTP API, data model, URLs, env vars). Not the "why" of a mechanism —
 > that belongs next to the code that executes it, or in that folder's
-> `CLAUDE.md`.
+> `AGENTS.md`.
 >
 > **Keep it in sync** when a change moves something indexed here (API surface,
 > data model, routes, deployment contract).
@@ -121,7 +122,7 @@ Four facts that are pinned by tests:
   `tags[]=X` only if the search matched its title, its episode's title, or tag X
   itself: the search narrows the tag rows *before* the tag filter sees them.
   **This is deliberate**; the mechanism and the measured numbers are in
-  `packages/backend/CLAUDE.md`. Making the two filters independent is a
+  `packages/backend/AGENTS.md`. Making the two filters independent is a
   **product decision**, not a cleanup.
 - ⚠️ **`GET /tags` is code-point order**, pinned with an explicit
   `collate "C"`. Without it the result reorders under a different Postgres
@@ -262,7 +263,7 @@ episode and coming back tomorrow presses play and carries on. The length of what
 plays here is what makes the position worth keeping, and the invariant that keeps
 it honest is that **`at` always describes `keys[index]`**, written in the same
 call. Like the queue itself it never reaches the server: see
-`packages/frontend/CLAUDE.md`, "Where you were listening".
+`packages/frontend/AGENTS.md`, "Where you were listening".
 And **an episode cannot travel in a `?c=` link** — two base62 characters carry an
 id and nothing that says which kind it is — so a shared queue carries the clips
 and leaves the episode behind, which `/cola` says out loud before the link is
@@ -280,7 +281,7 @@ same HTML; the browser ignores the tags and boots the SPA as usual.
 Crawlers and visitors receive the same HTML, so the tags are testable with `curl`
 and no bot list is involved. There is no separate social-preview page; the
 mechanics (escaping, where the block is inserted, why a clip that does not exist
-still gets a 200) are in `packages/backend/CLAUDE.md`, and the check is
+still gets a 200) are in `packages/backend/AGENTS.md`, and the check is
 `test/e2e/specs/09-meta-tags.spec.ts`.
 
 ### The PWA (2026-08-27)
@@ -308,7 +309,7 @@ holds the hashed assets and is the offline branch only.
 doing**: not while audio is playing, and not on the clip editor or the admin clip
 screen, where there is unsaved work. There is no "a new version is available"
 notice anywhere and there must not be one. The mechanism and the five decisions
-behind it are in `packages/frontend/CLAUDE.md`, "The PWA".
+behind it are in `packages/frontend/AGENTS.md`, "The PWA".
 
 ## Environment
 
@@ -407,7 +408,7 @@ sequences** before the run and fails teardown on any drift.
 - **Git**: commit messages are in Spanish, imperative-ish, one line.
 - **Language**: **user-facing copy is Spanish**, written straight into the
   templates — there is no i18n layer and the app is not going multilingual, the
-  voice is part of it. Identifiers, code comments and `CLAUDE.md` files are
+  voice is part of it. Identifiers, code comments and `AGENTS.md` files are
   **English**.
 - **Versions** are kept in lockstep by hand: both `package.json`s,
   `packages/backend/src/constants/version.ts`, and the changelog in
@@ -446,7 +447,7 @@ matching nothing.
 2. **Ingestion is a scheduled job with no HTTP surface.** No endpoint triggers
    it: an unauthenticated GET that fires outbound requests and writes to the
    database is exactly what this avoids. The feed is read as RSS — see
-   `packages/backend/CLAUDE.md`, "Ingestion".
+   `packages/backend/AGENTS.md`, "Ingestion".
 3. **There is no IP column anywhere.** Identity is the anonymous voter token
    above, and nothing else.
 
@@ -463,7 +464,7 @@ unusual".
 
 
 The public UI is the specification of why the app looks like this, and this file
-plus each package's `CLAUDE.md` is where it is written down.
+plus each package's `AGENTS.md` is where it is written down.
 
 ⚠️ **The UI is governed by this document.** The **API** is still governed by its
 own tests, and that has not loosened by a millimetre.
@@ -517,7 +518,7 @@ momentos` included.
 `ListAllEpisodesUseCase` that loops `GET /episodes?limit=100` — the endpoint's maximum.
 No aggregate endpoint, no `openapi.json` change, no new declared difference: 589 rows is
 ~35 KB, and this is the project that says not to design for volume it does not have.
-The mechanism and the five decisions behind it are in `packages/frontend/CLAUDE.md`,
+The mechanism and the five decisions behind it are in `packages/frontend/AGENTS.md`,
 "The calendar".
 
 ⚠️ **`Mis momentos` (2026-08-26): a private mark on an episode, and NOT a row in the
@@ -541,12 +542,13 @@ cannot answer**, so with it on the list is assembled in the browser out of
 `?start`, `?end` and `?moment`**, which is the whole path a moment has out of the browser
 it lives in — cut it, publish it, and the mark keeps the clip's id so the row reads
 `ya es el corte nº 137`. The mechanism and the five decisions behind it are in
-`packages/frontend/CLAUDE.md`, "Mis momentos".
+`packages/frontend/AGENTS.md`, "Mis momentos".
 
 ⚠️ **The waveform behind the player is measured now (2026-08-19), and drawn only as a
 fallback.** `GET /episodes/:id/waveform` serves real peaks computed offline, server-side,
-from the downloaded mp3 — see `packages/backend/src/waveform/` and its `CLAUDE.md`
-section — so the browser still never decodes audio itself, and `GravWave.vue` still falls
+from the downloaded mp3 — see `packages/backend/src/waveform/` and
+`packages/backend/AGENTS.md`, "Waveforms" — so the browser still never decodes
+audio itself, and `GravWave.vue` still falls
 back to its original deterministic pseudo-random shape, seeded by the clip id, for any
 episode that has not been measured yet or while the request is in flight.
 

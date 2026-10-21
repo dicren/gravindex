@@ -165,7 +165,7 @@ describe('when storage will not cooperate', () => {
 
 describe('the anonymous voter token', () => {
   /**
-   * ⚠️ Two identifiers, two purposes, never joined (root `CLAUDE.md`,
+   * ⚠️ Two identifiers, two purposes, never joined (root `AGENTS.md`,
    * "Identity"): the voter token is an anonymous deduplication hint for votes,
    * GA4 has an identifier of its own and it is gated behind this decision.
    * Storing them under one key, or clearing one with the other, is how they

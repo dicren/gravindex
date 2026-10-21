@@ -35,7 +35,7 @@ export const DEFAULT_ANALYZE_TIMEOUT_MS = 15 * 60 * 1000;
  * two-hour episode at 8 kHz mono 16-bit that is ~115 MB. Deliberately not
  * streamed: this project's whole catalogue is ~600 episodes analyzed once,
  * offline, a handful at a time (`waveform.cli.ts --concurrency`), never in a
- * request path — see the root CLAUDE.md, "Do not design for volume this
+ * request path — see the root AGENTS.md, "Do not design for volume this
  * project does not have".
  *
  * Rejects if `ffmpeg` is not on `PATH`, exits non-zero, or times out; never

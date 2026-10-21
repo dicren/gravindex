@@ -25,7 +25,7 @@ export const DEFAULT_TIMEZONE = 'UTC';
 export const INGEST_JOB_NAME = 'ingest-episodes';
 
 // ⚠️ Deliberately small. A newly ingested batch can be large (see the backend
-// CLAUDE.md, "Ingestion"), and downloading + decoding all of them in the first nightly
+// AGENTS.md, "Ingestion"), and downloading + decoding all of them in the first nightly
 // tick after that would turn one cron run into hours of outbound traffic to a
 // third party's server. `waveform.cli.ts --limit` is the tool for a deliberate
 // bulk catch-up; this is just the trickle that keeps new episodes from
