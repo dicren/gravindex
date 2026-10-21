@@ -1498,8 +1498,8 @@ server. That is exactly what the hexagonal split buys: `core/domain` and
 (`mount-with-vuetify.ts`).
 
 `vitest.config.ts` merges the Vite config so aliases and `__APP_VERSION__` exist
-in tests. ⚠️ Its `defineConfig` **must** come from `vitest/config` — Vitest 4 no
-longer augments Vite's, and `vue-tsc` rejects the wrong one. ⚠️ Vuetify is in
+in tests. ⚠️ Its `defineConfig` **must** come from `vitest/config` — Vitest 4 and
+5 no longer augment Vite's, and `vue-tsc` rejects the wrong one. ⚠️ Vuetify is in
 `server.deps.inline`, because its per-component CSS side-effect imports cannot
 go through Node's loader.
 

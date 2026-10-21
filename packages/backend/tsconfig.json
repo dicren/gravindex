@@ -22,7 +22,15 @@
     "experimentalDecorators": true,
 
     "outDir": "./dist",
-    "baseUrl": "./",
+    // ⚠️ Explicit since TypeScript 6, which stopped inferring it from the
+    // common ancestor of the inputs and defaults it to this file's directory
+    // instead — without it the emit lands in `dist/src/main.js` and every
+    // script in `package.json` (`node dist/main`, the MikroORM CLI's
+    // `./dist/mikro-orm.config.js`) points at nothing.
+    "rootDir": "./src",
+    // ⚠️ No `baseUrl`: TypeScript 6 deprecated it as a module-resolution
+    // look-up root. It was only ever the implicit prefix here — `paths` is not
+    // set — and every import in this package is relative.
     "declaration": false,
     "removeComments": true,
     "types": ["node", "jest"]

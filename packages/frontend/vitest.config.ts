@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 // ⚠️ `defineConfig` MUST come from `vitest/config`, not from `vite`. Vitest 4
-// no longer augments Vite's own `defineConfig` with the `test` key, so the
+// (and 5) no longer augment Vite's own `defineConfig` with the `test` key, so the
 // `vite` import type-checks fine until `vue-tsc` reaches this file and rejects
 // `test` as an unknown property.
 import { defineConfig, mergeConfig } from 'vitest/config';

@@ -154,6 +154,19 @@ describe('admin surface (HTTP, against a real database)', () => {
       }),
     );
     await app.init();
+    // ⚠️ Listening ONCE here, on a loopback ephemeral port, rather than letting
+    // supertest start the server on its first request. Since 7.3.0 supertest
+    // refcounts those ephemeral servers and closes one as soon as the last
+    // pending request settles — and a `Test` built before its sibling finishes
+    // (`request(server).patch(…).set('Authorization', \`Bearer ${await
+    // adminToken()}\`)` builds the outer request BEFORE the login one) keeps a
+    // deferred path that dispatches into `formatServerUrl(server,
+    // server.address())`. By then the server is closed, `address()` is `null`
+    // and the whole test dies with `Cannot read properties of null (reading
+    // 'address')`. With the server listening from the start, supertest takes
+    // the plain path and closes nothing. Only the nine tests that log in first
+    // hit it, which is what made it look flaky.
+    await app.listen(0, '127.0.0.1');
 
     orm = app.get(MikroORM);
     jwt = app.get(JwtService);

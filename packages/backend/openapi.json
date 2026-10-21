@@ -978,6 +978,9 @@
         "type": "object",
         "properties": {
           "status": {
+            "enum": [
+              "ok"
+            ],
             "type": "string",
             "example": "ok"
           },

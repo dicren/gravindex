@@ -47,7 +47,7 @@ packages are at **`2.0.0`**.
 
 | Path | Stack | Role |
 |---|---|---|
-| `packages/backend/` | NestJS 11, MikroORM 7 (PostgreSQL), Express | The `/api` REST API, the RSS ingestion job, **and serving the built SPA with injected Open Graph tags** |
+| `packages/backend/` | NestJS 12, MikroORM 7 (PostgreSQL), Express | The `/api` REST API, the RSS ingestion job, **and serving the built SPA with injected Open Graph tags** |
 | `packages/frontend/` | Vue 3, Vuetify 4, Vite, Pinia + Pinia Colada, strict TypeScript | The whole UI: library, episode list, clip permalink, clip editor, admin |
 
 | Root file / folder | What it is |

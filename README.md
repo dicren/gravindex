@@ -15,7 +15,7 @@ Monorepo de dos paquetes con workspaces de npm:
 
 | Paquete | Qué es |
 |---|---|
-| `packages/backend` | NestJS 11 + MikroORM (PostgreSQL). Sirve la API bajo `/api` **y la propia SPA**, con las etiquetas Open Graph inyectadas para los enlaces compartidos |
+| `packages/backend` | NestJS 12 + MikroORM (PostgreSQL). Sirve la API bajo `/api` **y la propia SPA**, con las etiquetas Open Graph inyectadas para los enlaces compartidos |
 | `packages/frontend` | Vue 3 + Vuetify + Vite, TypeScript estricto, arquitectura hexagonal |
 
 ## Arranque rápido 🚀

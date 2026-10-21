@@ -9,7 +9,7 @@ specific to this package.
 
 ## What this is
 
-A **NestJS 11 + MikroORM 7 (PostgreSQL)** application, version `2.0.0`. It is
+A **NestJS 12 + MikroORM 7 (PostgreSQL)** application, version `2.0.0`. It is
 three things in one process:
 
 1. the **REST API** under the `/api` prefix, published as OpenAPI;
@@ -92,6 +92,21 @@ Flipping the entity glob on `NODE_ENV === 'production'` is only correct for a
 process whose CWD is `dist/`; working around that by leaving `NODE_ENV` unset in
 the image stops `SpaService` caching the shell, so it re-reads `index.html` on
 every request. One assumption about a working directory, three consequences.
+
+⚠️ **Nest 12 ships as ESM; this package still emits CommonJS, and that is fine.**
+Nothing in `src/` changed for it: `module: node20` + `moduleResolution: node16`
+type-check an ESM dependency, Node's `require(esm)` loads it at runtime (hence
+`engines.node >= 24`), and with no `"type": "module"` anywhere here the emit is
+still CommonJS — `node dist/main.js` keeps working. The one place it shows is
+Jest: it reaches those same ESM packages through `require()`, which is why every
+`test*` script carries `NODE_OPTIONS=--experimental-vm-modules` (Jest ≥ 30.4).
+
+⚠️ **TypeScript is pinned to 6.x on purpose — do not chase 7.** The floor is
+`@nestjs/schematics@12` (`typescript >= 6`); the ceiling is the tooling that has
+not adopted the native compiler: `ts-jest` declares `< 7` and
+`typescript-eslint` `< 6.1`. TypeScript 7 is also a different program with no
+JavaScript API (`typescript` there exports a Go binary), so `ts-jest` and
+`vue-tsc` cannot drive it at all.
 
 ## Configuration
 
@@ -426,7 +441,7 @@ the shell, the shell wins over a 404, and `/api` never reaches either.**
 
 ⚠️ **Why the adapter and not a controller or `MiddlewareConsumer`.** Both of
 those mount *under* `setGlobalPrefix`, which would serve the site at `/api`:
-Nest 11's `RouteInfoPathExtractor` rewrites a wildcard middleware path to
+Nest 12's `RouteInfoPathExtractor` rewrites a wildcard middleware path to
 `['/api$', '/api/{*splat}']` when a prefix is set, and `setGlobalPrefix`'s
 `exclude` is no escape hatch either — exclusions are matched as patterns against
 every route, so one broad enough to cover `/{*splat}` also strips the prefix off

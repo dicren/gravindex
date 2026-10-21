@@ -5,7 +5,7 @@ export type ClientOptions = {
 };
 
 export type HealthResponseDto = {
-  status: string;
+  status: 'ok';
   /**
    * The backend package's version
    */
