@@ -631,8 +631,8 @@ A nightly `pg_dump` lands in `/var/backups/gravindex` (14 days), taken **inside*
 the database container so the credentials never reach the host, and the same
 file is emailed to the address in `MAIL_TO` through an authenticated SMTP relay
 (`deploy/server/gravindex-send-backup.py`, configured in
-`/etc/gravindex/mail.env`). ⚠️ The destination is environment-only: no address
-is written anywhere in this repository. ⚠️ A relay is not optional: the
+`/etc/gravindex/mail.env`). ⚠️ The destination is environment-only: no backup
+address is written anywhere in this repository. ⚠️ A relay is not optional: the
 domain's MX is a provider and the VPS has a generic PTR, so mail sent directly
 from it fails SPF. Both copies are a copy, not a backup system; neither survives
 losing the VPS *and* the mailbox, which is why the local one is still the
