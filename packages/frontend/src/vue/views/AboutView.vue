@@ -15,7 +15,7 @@
  * A spellcheck pass here is a content change and needs to be somebody's decision,
  * not a side effect of a refactor.
  *
- * ⚠️ **The `2.0.1` entry belongs to the current release.** It moves in lockstep
+ * ⚠️ **The `2.0.2` entry belongs to the current release.** It moves in lockstep
  * with this package's `version` (see below), and the two are kept in step by
  * hand.
  *
@@ -25,7 +25,7 @@
  * - The four headings are peers, so they are `<h2>`s here. The level is about
  *   the outline, and `GravTitle` sets the size separately.
  * - The version is printed in the FOOTER, not on this page: `GravFooter` reads the `__APP_VERSION__` constant Vite bakes
- *   in from `package.json`. Nothing here restates it. ⚠️ That number is `2.0.1`,
+ *   in from `package.json`. Nothing here restates it. ⚠️ That number is `2.0.2`,
  *   matching the entry below; the two still move together by hand and there is
  *   nothing enforcing it.
  */
@@ -79,6 +79,27 @@ import GravTitle from '@/components/GravTitle.vue';
     <!-- ⚠️ The changelog. Verbatim, every entry, in this order. `<strong>` carries
          the emphasis, so it is real markup rather than a class. -->
     <ul class="about__changelog">
+      <li>
+        <strong>2.0.2</strong> - 27/10/2026
+        <ul>
+          <li>
+            La cola sigue sonando con la pestaña en segundo plano o la pantalla apagada, y la
+            pantalla de bloqueo muestra lo que suena con sus controles
+          </li>
+          <li>
+            Si el audio se corta, se reintenta una vez desde donde estaba; si vuelve a fallar, la
+            cola pasa al siguiente y avisa una sola vez
+          </li>
+          <li>
+            Botón de corte anterior: vuelve al corte de antes o reinicia el que suena si llevas más
+            de tres segundos
+          </li>
+          <li>
+            Dos pestañas de la web comparten la cola y el sonido: la que empieza a sonar manda y la
+            otra se calla
+          </li>
+        </ul>
+      </li>
       <li>
         <strong>2.0.1</strong> - 21/10/2026
         <ul>

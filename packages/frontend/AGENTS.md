@@ -24,7 +24,7 @@ covers what is specific to this package.
 The entire UI: a **Vue 3 SPA** built with **Vite**, styled with **Vuetify 4**
 under a custom *gravinero* theme, routed by **vue-router 5**, with **Pinia** for
 client state and **Pinia Colada** for server state. **Strict TypeScript, `any`
-banned by lint.** Version `2.0.1`.
+banned by lint.** Version `2.0.2`.
 
 It is organised as a **hexagon**: a framework-free `core/` (domain ·
 application · infrastructure · config) and a `vue/` delivery layer, with the
@@ -1747,7 +1747,7 @@ of `v-html`, and the list views having an error branch.
 once: a comment there means "this differs on purpose", not "this is unusual".
 The screens' authority is this document.
 
-⚠️ **The `2.0.1` changelog entry lives in `AboutView.vue`**, written by hand and
+⚠️ **The `2.0.2` changelog entry lives in `AboutView.vue`**, written by hand and
 kept in step with the version in both `package.json`s and `constants/version.ts`.
 
 ## Tests
