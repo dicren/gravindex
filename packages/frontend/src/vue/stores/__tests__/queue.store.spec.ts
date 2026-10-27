@@ -8,6 +8,7 @@ import {
   setAudioElementFactory,
   usePlaybackStore,
   type PlaybackAudio,
+  type PlaybackAudioEvent,
 } from '../playback.store';
 import {
   clipKey,
@@ -16,6 +17,7 @@ import {
   type QueuedClip,
   type QueuedEpisode,
 } from '../queue.store';
+import { useNotificationsStore } from '../notifications.store';
 
 /**
  * The queue: what plays, what comes next, and how to get back to it tomorrow.
@@ -38,22 +40,47 @@ class FakeAudio implements PlaybackAudio {
   currentTime = 0;
   playCalls = 0;
   pauseCalls = 0;
+  loadCalls = 0;
+  /**
+   * ⚠️ **A file that cannot be played, modelled honestly.** A real element whose
+   * source is aborted fires `play` the moment `play()` is accepted — before a
+   * single byte arrives — and then `error`; what it NEVER fires is `playing`,
+   * which is the only event that means it has data and is producing sound. So
+   * this flag suppresses `playing` and nothing else. Emitting neither event
+   * would model a load that was never even asked to start, and would hide the
+   * very defect the batch of notices exists for.
+   */
+  dead = false;
   private readonly listeners = new Map<string, (() => void)[]>();
+  private pausedFlag = true;
+
+  get paused(): boolean {
+    return this.pausedFlag;
+  }
 
   play(): Promise<void> {
     this.playCalls += 1;
+    this.pausedFlag = false;
+    this.emit('play');
+    if (!this.dead) this.emit('playing');
     return Promise.resolve();
   }
 
   pause(): void {
     this.pauseCalls += 1;
+    this.pausedFlag = true;
+    this.emit('pause');
   }
 
-  addEventListener(type: string, listener: () => void): void {
+  load(): void {
+    this.loadCalls += 1;
+  }
+
+  addEventListener(type: PlaybackAudioEvent, listener: () => void): void {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
   }
 
-  emit(type: 'timeupdate' | 'canplay' | 'ended' | 'durationchange'): void {
+  emit(type: PlaybackAudioEvent): void {
     for (const listener of this.listeners.get(type) ?? []) listener();
   }
 
@@ -259,6 +286,112 @@ describe('advancing', () => {
 
     expect(playback.currentClipId).toBe(2);
     expect(queue.hasNext).toBe(false);
+  });
+});
+
+/**
+ * ⚠️ **`previous()` is the mirror of `next()`, and the three-second rule is not
+ * arbitrary.** Going back to the item before while a cut is half-way through its
+ * first sentence is never what a thumb reaching for previous wants — it wants
+ * the beginning of this one. Same rule every music player applies, and the same
+ * reason the control never has to disappear.
+ *
+ * ⚠️ **It reversed the justification of `/cola`'s reorder rule rather than the
+ * rule itself** (2026-10-27): the past is reachable again, so a clip put behind
+ * the playhead can sound — but only when somebody presses this, which is exactly
+ * why nothing AUTOMATIC may be put there.
+ */
+describe('going back', () => {
+  function twoClips() {
+    const queue = useQueueStore();
+    queue.enqueue(clip(1));
+    queue.enqueue(clip(2, { start: 300, end: 320 }));
+    return queue;
+  }
+
+  it('restarts what is playing once three seconds have sounded', () => {
+    const queue = twoClips();
+    const playback = usePlaybackStore();
+    queue.next();
+    audio.advanceTo(310);
+
+    queue.previous();
+
+    // ⚠️ Same item, same index: this is "start it again", not "go back one".
+    expect(queue.currentIndex).toBe(1);
+    expect(playback.currentClipId).toBe(2);
+    expect(playback.elapsed).toBe(0);
+    expect(audio.currentTime).toBe(300);
+  });
+
+  it('goes back one item inside those first three seconds, and plays it', () => {
+    const queue = twoClips();
+    const playback = usePlaybackStore();
+    queue.next();
+    audio.advanceTo(301);
+
+    queue.previous();
+
+    expect(queue.currentIndex).toBe(0);
+    expect(playback.currentClipId).toBe(1);
+    expect(playback.playing).toBe(true);
+  });
+
+  /** ⚠️ At the first item there is nothing behind it, so the same button means
+   *  "start this one again" — the boundary a queue instead of a list of dead
+   *  ends is there for. */
+  it('restarts the first item rather than falling off the queue', () => {
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.enqueue(clip(1));
+    audio.advanceTo(clip(1).start + 2);
+
+    queue.previous();
+
+    expect(queue.currentIndex).toBe(0);
+    expect(audio.currentTime).toBe(clip(1).start);
+    expect(playback.elapsed).toBe(0);
+    expect(playback.playing).toBe(true);
+  });
+
+  /**
+   * ⚠️ **A cold boot has an index and no sound**, so previous there is a play
+   * instruction rather than a seek into audio that does not exist — and it
+   * carries the remembered position with it, because the queue has not been
+   * spent by the boot.
+   */
+  it('loads the item the queue points at when the element holds nothing', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1'], index: 0, at: 20 }));
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.remember(clip(1));
+    expect(audio.playCalls).toBe(0);
+
+    queue.previous();
+
+    expect(audio.playCalls).toBe(1);
+    expect(playback.currentClipId).toBe(1);
+    expect(audio.currentTime).toBe(clip(1).start + 20);
+  });
+
+  /** ⚠️ Available whenever the queue POINTS at something, even at the first
+   *  item — see the restart rule above. */
+  it('is offered as soon as something is current', () => {
+    const queue = useQueueStore();
+    expect(queue.hasPrevious).toBe(false);
+
+    queue.enqueue(clip(1));
+
+    expect(queue.hasPrevious).toBe(true);
+  });
+
+  /** ⚠️ The one state it refuses: keys and no pointer — a stored index that did
+   *  not survive the read. There is no "current item" for it to restart. */
+  it('is not offered by a queue that points at nothing', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1', 'c2'], index: -1 }));
+    const queue = useQueueStore();
+
+    expect(queue.hasPrevious).toBe(false);
   });
 });
 
@@ -530,6 +663,103 @@ describe('persistence', () => {
   });
 });
 
+/**
+ * **Pressing play on an item nobody has resolved yet** (2026-10-27).
+ *
+ * ⚠️ **The dead play button, and it is not a hypothetical.** Chrome discards a
+ * backgrounded tab for memory and restores it with the order, the index and the
+ * position intact but not one record of what each key IS — and `playAt` used to
+ * return quietly there, so the visitor pressed play and absolutely nothing
+ * happened, for ever.
+ *
+ * ⚠️ The queue still knows nothing about HTTP: it holds the key and asks
+ * whoever owns the request (`composables/use-queue-hydration.ts`) through a
+ * seam shaped exactly like `setEndedHandler`/`setErrorHandler`.
+ */
+describe('pressing play on an item nobody has resolved yet', () => {
+  function storedQueue(): { keys: string[]; index: number; at: number } {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+  }
+
+  it('asks for it once and starts it when the record arrives', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1', 'c2'], index: 0 }));
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.remember(clip(1));
+    queue.playAt(0);
+    audio.advanceTo(clip(1).start + 30);
+
+    const resolve = vi.fn();
+    queue.setQueueResolver(resolve);
+
+    queue.playAt(1);
+
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(resolve).toHaveBeenCalledWith(clipKey(2));
+    /**
+     * ⚠️ **The queue keeps pointing at what is actually sounding** until there is
+     * a record to point at: `currentIndex` does not move for a key nobody has
+     * resolved yet, and the write still describes the outgoing item, which is
+     * the one the player is holding.
+     */
+    expect(queue.currentIndex).toBe(0);
+    expect(storedQueue()).toEqual({ keys: ['c1', 'c2'], index: 0, at: 30 });
+
+    queue.remember(clip(2, { start: 300, end: 320 }));
+
+    // ...and once it is the current item, the normal path applies: element
+    // first, write second, so `at` now describes clip 2.
+    expect(playback.currentClipId).toBe(2);
+    expect(queue.currentIndex).toBe(1);
+    expect(audio.currentTime).toBe(300);
+    expect(storedQueue()).toEqual({ keys: ['c1', 'c2'], index: 1, at: 0 });
+  });
+
+  /** ⚠️ A store with no resolver — a spec, or one used before `App.vue` mounts
+   *  — must mark the key and throw nothing. A record that does arrive later
+   *  still starts it: the visitor asked, and the item is here. */
+  it('waits quietly with no resolver registered', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1', 'c2'], index: 0 }));
+    const queue = useQueueStore();
+    queue.remember(clip(1));
+    queue.playAt(0);
+
+    expect(() => queue.playAt(1)).not.toThrow();
+    expect(usePlaybackStore().currentClipId).toBe(1);
+
+    queue.remember(clip(2, { start: 300, end: 320 }));
+
+    expect(usePlaybackStore().currentClipId).toBe(2);
+  });
+
+  /**
+   * ⚠️ **What hydration does with a `NOT_FOUND`**: `forget`, silently, because a
+   * clip deleted through the admin surface must not leave a 404 in somebody's
+   * queue — and it must take the waiting play with it. Without that the key
+   * would stay pending for ever, and the next record for it (a later boot, a
+   * reused id) would start playing unasked.
+   */
+  it('leaves nothing pending when the item turns out to be gone', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1', 'c2'], index: 0 }));
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.remember(clip(1));
+    queue.setQueueResolver(() => {});
+
+    queue.playAt(1);
+    queue.forget(clipKey(2));
+
+    expect(queue.keys).toEqual([clipKey(1)]);
+
+    const plays = audio.playCalls;
+    // A late answer for the key that is gone starts nothing, and says nothing.
+    expect(() => queue.remember(clip(2))).not.toThrow();
+    expect(audio.playCalls).toBe(plays);
+    expect(queue.currentIndex).toBe(0);
+    expect(playback.currentClipId).toBeNull();
+  });
+});
+
 describe('an id that no longer resolves', () => {
   // ⚠️ Silent by contract: a clip deleted through the admin surface must not
   // leave a 404 in somebody's queue, and the visitor did nothing wrong.
@@ -542,6 +772,123 @@ describe('an id that no longer resolves', () => {
 
     expect(queue.keys).toEqual([clipKey(1)]);
     expect(queue.entries.has(clipKey(2))).toBe(false);
+  });
+});
+
+/**
+ * **A file that will not play** (2026-10-27).
+ *
+ * ⚠️ The playback store gives a source **one retry** and then gives up — a
+ * remote mp3 that 404s or carries a codec the browser cannot decode is dead, and
+ * retrying for ever is a player in a loop nobody can see. What to do about it is
+ * the queue's business, so the store hands over through `setErrorHandler`, the
+ * sibling of the `setEndedHandler` seam that already advances at the end of a
+ * clip.
+ *
+ * ⚠️ **One notice per batch of deaths, not one per dead file.** A queue shared
+ * from a link can hold four of them in a row, and four toasts saying the same
+ * sentence is how a player looks broken rather than decisive. The batch ends the
+ * moment something actually plays.
+ */
+describe('a file that will not play', () => {
+  function notices() {
+    return useNotificationsStore().items;
+  }
+
+  it('is skipped after the second failure, with one notice saying what happened', () => {
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.enqueue(clip(1));
+    queue.enqueue(clip(2, { start: 300, end: 320 }));
+
+    audio.dead = true;
+    audio.emit('error');
+    audio.emit('error');
+
+    expect(queue.currentIndex).toBe(1);
+    expect(playback.currentClipId).toBe(2);
+    expect(notices()).toHaveLength(1);
+    expect(notices()[0]).toMatchObject({
+      level: 'warning',
+      title: 'Audio roto',
+      text: 'No se ha podido cargar este audio. Sigo con el siguiente.',
+    });
+  });
+
+  /**
+   * ⚠️ **The measured regression** (`test/e2e/specs/17-background-playback.spec.ts`):
+   * three unloadable clips in a row raised THREE notices. The batch was being
+   * cleared on `playback.playing`, and a browser fires `play` — which sets it —
+   * the moment `play()` is accepted, before any data, so every skip looked like
+   * a fresh batch to the next attempt.
+   *
+   * ⚠️ Each dead clip costs exactly two `play()` calls: the store's one retry,
+   * then the hand-over. Six is therefore also the proof that nothing loops.
+   */
+  it('does not stack a notice per dead file — three in a row speak once', () => {
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.enqueue(clip(1));
+    queue.enqueue(clip(2, { start: 300, end: 320 }));
+    queue.enqueue(clip(3, { start: 400, end: 420 }));
+
+    audio.dead = true;
+    for (const index of [0, 1, 2]) {
+      expect(queue.currentIndex).toBe(index);
+      audio.emit('error');
+      audio.emit('error');
+    }
+
+    expect(notices()).toHaveLength(1);
+    // The contract: the last item dying is the end, exactly as the last one
+    // ending is. Nothing plays and nothing wrapped around.
+    expect(queue.currentIndex).toBe(2);
+    expect(playback.currentClipId).toBe(3);
+    expect(playback.playing).toBe(false);
+    expect(audio.playCalls).toBe(6);
+  });
+
+  it('speaks again once a batch has ended with something that played', () => {
+    const queue = useQueueStore();
+    queue.enqueue(clip(1));
+    queue.enqueue(clip(2, { start: 300, end: 320 }));
+    queue.enqueue(clip(3, { start: 400, end: 420 }));
+
+    audio.dead = true;
+    audio.emit('error');
+    audio.emit('error');
+    expect(notices()).toHaveLength(1);
+
+    // Something plays: the run of deaths is over, so the next one is news.
+    audio.dead = false;
+    queue.playAt(1);
+    expect(notices()).toHaveLength(1);
+
+    audio.dead = true;
+    queue.playAt(2);
+    audio.emit('error');
+    audio.emit('error');
+
+    expect(notices()).toHaveLength(2);
+  });
+
+  /** ⚠️ No looping and no wrap-around: the last item dying is the end, exactly
+   *  as the last item ending is. Only the single retry the playback store buys
+   *  ever asks the element to start again. */
+  it('stops at the last item instead of looping', () => {
+    const queue = useQueueStore();
+    queue.enqueue(clip(1));
+    expect(audio.playCalls).toBe(1);
+
+    audio.dead = true;
+    audio.emit('error');
+    audio.emit('error');
+
+    expect(queue.currentIndex).toBe(0);
+    expect(usePlaybackStore().playing).toBe(false);
+    // The first play, plus the one retry — and nothing after it.
+    expect(audio.playCalls).toBe(2);
+    expect(notices()).toHaveLength(1);
   });
 });
 
@@ -669,6 +1016,18 @@ describe('what this store is not', () => {
 it('registers itself as the playback store’s end-of-clip handler', () => {
   const playback = usePlaybackStore();
   const spy = vi.spyOn(playback, 'setEndedHandler');
+
+  useQueueStore();
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+// ⚠️ The same guard for the other seam (2026-10-27): with `setErrorHandler`
+// never registered a dead file rewinds and stops — silently, at the first item,
+// with no advance and no notice — and nothing else in the suite would notice.
+it('registers itself as the playback store’s error handler', () => {
+  const playback = usePlaybackStore();
+  const spy = vi.spyOn(playback, 'setErrorHandler');
 
   useQueueStore();
 

@@ -44,9 +44,18 @@
  *
  * ⚠️ **Nothing may reorder ahead of `currentIndex`.** `queue.next()` only ever
  * advances, so a clip dragged or arrowed above the one playing would never
- * sound again on its own — indistinguishable from deleting it — and with the
+ * sound again ON ITS OWN — indistinguishable from deleting it — and with the
  * history collapsed it would also vanish from view. The drag handle is absent
  * on played rows and the up-arrow is disabled at the boundary.
+ *
+ * ⚠️ **`queue.previous()` is the other half of that sentence, and it is why the
+ * rule is asymmetric rather than absolute** (2026-10-27). The past is reachable
+ * again — by the transport, by the media session's `previoustrack` — so a clip
+ * already behind the playhead is not dead, it is one press away. What is still
+ * true, and what this screen must keep protecting, is that nothing AUTOMATIC
+ * will ever land on it: `next()` only advances, so a clip parked ahead of what
+ * is playing needs somebody to press a button they may never press. Same rule
+ * in `queue.store.ts`, stated there from the store's side.
  */
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -211,8 +220,11 @@ function onDragMove(event: PointerEvent): void {
 
   const over = rowIndexAt(event.clientX, event.clientY);
   // ⚠️ A destination at or before `currentIndex` would drop the dragged clip
-  // ahead of what is playing — a clip `next()` would then skip over forever,
-  // and one the collapsed history would swallow outright.
+  // ahead of what is playing — a clip `next()` would then skip over forever, and
+  // one the collapsed history would swallow outright. `previous()` can reach the
+  // past, which is why a row already there is allowed to stay and even to move;
+  // what it cannot do is move something INTO that stretch, because only a
+  // deliberate press ever goes back.
   if (over === null || over === dragging.value || over <= queue.currentIndex) return;
 
   queue.move(dragging.value, over);
@@ -331,10 +343,12 @@ onUnmounted(endDrag);
           :data-queue-index="row.index"
         >
           <!-- ⚠️ Only a row that may still move gets a handle: dragging one
-               ahead of `currentIndex` would put it where it can never sound
-               again. The empty span on the other rows keeps the five-track
-               grid intact — see `.i-row__gap` in the AGENTS.md for the same
-               trap in the library row. -->
+               ahead of `currentIndex` would put it where only a deliberate
+               `previous()` could ever reach it — never `next()`, and never the
+               automatic advance that is the whole point of a queue. The empty
+               span on the other rows keeps the five-track grid intact — see
+               `.i-row__gap` in the AGENTS.md for the same trap in the library
+               row. -->
           <span
             v-if="row.index > queue.currentIndex"
             class="q-row__grip"

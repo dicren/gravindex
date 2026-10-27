@@ -32,6 +32,13 @@
  * an unpublished cut open in the editor; see `pwa/start-app-updates.ts`. In a
  * dev build it registers nothing at all.
  *
+ * ⚠️ `startMediaSession` is here for the same reason, and it draws nothing
+ * either. It projects the queue and the player onto `navigator.mediaSession` —
+ * the lock screen's title, cover and transport — which is the ONLY way the
+ * browser offers a next button while the screen is off. It is mounted at the
+ * shell because what it describes outlives every screen; where there is no
+ * media session it returns a no-op and the app is untouched.
+ *
  * ⚠️ `<EpisodeSearchOverlay>` is mounted here for the same reason and one more:
  * `Añadir corte` opens over the screen you were on, so it cannot live inside any
  * of them. It watches the route rather than a flag, which is what makes
@@ -40,6 +47,14 @@
  * ⚠️ `useQueueHydration` runs here because the queue survives a reload as a list
  * of ids and something has to turn them back into clips before the player can
  * show one. It is idempotent and silent — see the composable.
+ *
+ * ⚠️ `startPlaybackReconciliation` is the app's half of "a system pause is not a
+ * stop". It listens for the page coming back (`visibilitychange`, `resume`,
+ * `pageshow`) and puts intention and element state together again, so a phone
+ * call, disconnected headphones or a frozen tab no longer need a reload to keep
+ * listening. It also arms the hidden-page watchdog. Nothing is drawn; in a
+ * browser that fires none of those events it costs three listeners and nothing
+ * else. See `stores/playback.store.ts`.
  */
 import { onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -51,6 +66,8 @@ import GlobalPlayer from '@/components/GlobalPlayer.vue';
 import NotificationHost from '@/components/NotificationHost.vue';
 import { useQueueHydration } from '@/composables/use-queue-hydration';
 import { startAnalytics } from '@/analytics/start-analytics';
+import { startMediaSession } from '@/media-session/start-media-session';
+import { startPlaybackReconciliation } from '@/stores/playback.store';
 import { startAppUpdates } from '@/pwa/start-app-updates';
 
 const stopAnalytics = startAnalytics(useRouter());
@@ -58,6 +75,12 @@ onUnmounted(stopAnalytics);
 
 const stopAppUpdates = startAppUpdates(useRouter());
 onUnmounted(stopAppUpdates);
+
+const stopMediaSession = startMediaSession();
+onUnmounted(stopMediaSession);
+
+const stopReconciliation = startPlaybackReconciliation();
+onUnmounted(stopReconciliation);
 
 useQueueHydration();
 </script>

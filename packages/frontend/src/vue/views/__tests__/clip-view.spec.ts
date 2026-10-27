@@ -8,7 +8,7 @@ import type { Episode, EpisodeDetail, EpisodeWaveform } from '#/domain/episodes/
 import { NetworkError, NotFoundError } from '#/domain/errors';
 import vuetify from '@/plugins/vuetify';
 import ClipView from '@/views/ClipView.vue';
-import type { PlaybackAudio } from '@/stores/playback.store';
+import type { PlaybackAudio, PlaybackAudioEvent } from '@/stores/playback.store';
 import type { QueuedClip } from '@/stores/queue.store';
 import { freshPinia, stubBrowserApis } from '@/components/__tests__/mount-with-vuetify';
 
@@ -116,12 +116,39 @@ const Blank = defineComponent({ template: '<div />' });
 class FakeAudio implements PlaybackAudio {
   src = '';
   currentTime = 0;
+  loadCalls = 0;
+  private readonly listeners = new Map<PlaybackAudioEvent, (() => void)[]>();
+  private pausedFlag = true;
+
+  get paused(): boolean {
+    return this.pausedFlag;
+  }
+
   play(): Promise<void> {
+    this.pausedFlag = false;
+    this.emit('play');
+    this.emit('playing');
     return Promise.resolve();
   }
-  pause(): void {}
-  addEventListener(): void {}
+
+  pause(): void {
+    this.pausedFlag = true;
+    this.emit('pause');
+  }
+
+  load(): void {
+    this.loadCalls += 1;
+  }
+
+  addEventListener(type: PlaybackAudioEvent, listener: () => void): void {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
   removeEventListener(): void {}
+
+  private emit(type: PlaybackAudioEvent): void {
+    for (const listener of this.listeners.get(type) ?? []) listener();
+  }
 }
 
 function queued(id: number): QueuedClip {

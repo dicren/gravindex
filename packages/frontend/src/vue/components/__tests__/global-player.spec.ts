@@ -7,6 +7,7 @@ import {
   setAudioElementFactory,
   usePlaybackStore,
   type PlaybackAudio,
+  type PlaybackAudioEvent,
 } from '@/stores/playback.store';
 import { useNotificationsStore } from '@/stores/notifications.store';
 import { useQueueStore, type QueuedClip, type QueuedEpisode } from '@/stores/queue.store';
@@ -37,21 +38,38 @@ class FakeAudio implements PlaybackAudio {
   currentTime = 0;
   playCalls = 0;
   pauseCalls = 0;
+  loadCalls = 0;
   private readonly listeners = new Map<string, (() => void)[]>();
+  private pausedFlag = true;
+
+  get paused(): boolean {
+    return this.pausedFlag;
+  }
 
   play(): Promise<void> {
     this.playCalls += 1;
+    this.pausedFlag = false;
+    this.emit('play');
+    this.emit('playing');
     return Promise.resolve();
   }
   pause(): void {
     this.pauseCalls += 1;
+    this.pausedFlag = true;
+    this.emit('pause');
   }
-  addEventListener(type: string, listener: () => void): void {
+  load(): void {
+    this.loadCalls += 1;
+  }
+  addEventListener(type: PlaybackAudioEvent, listener: () => void): void {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
   }
   advanceTo(seconds: number): void {
     this.currentTime = seconds;
-    for (const listener of this.listeners.get('timeupdate') ?? []) listener();
+    this.emit('timeupdate');
+  }
+  private emit(type: PlaybackAudioEvent): void {
+    for (const listener of this.listeners.get(type) ?? []) listener();
   }
 }
 
@@ -117,11 +135,40 @@ describe('with nothing playing', () => {
     wrapper.unmount();
   });
 
-  it('disables both transport buttons rather than hiding them', () => {
+  /**
+   * ⚠️ **All three, and in that order** (2026-10-27). The previous control sits
+   * immediately BEFORE play so the row reads previous · play · next — the order
+   * every transport on earth uses — and it is disabled rather than hidden for
+   * the same reason the other two are: a control that comes and goes moves the
+   * ones beside it.
+   */
+  it('disables all three transport buttons rather than hiding them', () => {
     const wrapper = mountPlayer();
 
+    expect(wrapper.find('.player__previous').attributes('disabled')).toBeDefined();
     expect(wrapper.find('.player__play').attributes('disabled')).toBeDefined();
     expect(wrapper.find('.player__next').attributes('disabled')).toBeDefined();
+
+    expect(
+      wrapper.findAll('.player__previous, .player__play, .player__next').map((b) => b.classes()[0]),
+    ).toEqual(['player__previous', 'player__play', 'player__next']);
+
+    wrapper.unmount();
+  });
+
+  /**
+   * ⚠️ **`hasPrevious` is "the queue points at something", not "there is a clip
+   * before this one".** At the first item previous restarts it — still a
+   * previous — which is why the control is not disabled there. The state it must
+   * refuse is an index of `-1`: keys and no pointer, which is what a stored
+   * queue looks like when its index did not survive the read, and there is
+   * nothing to restart or go back to.
+   */
+  it('disables previous for a queue that points at nothing', () => {
+    localStorage.setItem('gravindex.queue', JSON.stringify({ keys: ['c1'], index: -1 }));
+    const wrapper = mountPlayer();
+
+    expect(wrapper.find('.player__previous').attributes('disabled')).toBeDefined();
 
     wrapper.unmount();
   });
@@ -264,6 +311,36 @@ describe('with a clip playing', () => {
     expect(usePlaybackStore().currentClipId).toBe(2);
     await wrapper.vm.$nextTick();
     expect(wrapper.find('.player__next').attributes('disabled')).toBeDefined();
+
+    resetAudioElementFactory();
+    wrapper.unmount();
+  });
+
+  /**
+   * ⚠️ **The previous control, and it is asserted by its EFFECT** (2026-10-27):
+   * the queue moved back one AND the element is pointed at the other episode's
+   * file. "`previous()` was called" would pass over a button wired to nothing,
+   * and the two clips sharing one mp3 by default is exactly the sort of
+   * coincidence that would hide a source that never changed.
+   */
+  it('goes back with the previous button', async () => {
+    const wrapper = mountPlayer();
+    const queue = useQueueStore();
+    queue.enqueue(clip(1, { src: 'https://example.test/episodes/1.mp3' }));
+    queue.enqueue(clip(2, { start: 300, end: 320, src: 'https://example.test/episodes/2.mp3' }));
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find('.player__next').trigger('click');
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('.player__previous').attributes('disabled')).toBeUndefined();
+    expect(audio.src).toBe('https://example.test/episodes/2.mp3');
+
+    await wrapper.find('.player__previous').trigger('click');
+    await wrapper.vm.$nextTick();
+
+    expect(queue.currentIndex).toBe(0);
+    expect(usePlaybackStore().currentClipId).toBe(1);
+    expect(audio.src).toBe('https://example.test/episodes/1.mp3');
 
     resetAudioElementFactory();
     wrapper.unmount();

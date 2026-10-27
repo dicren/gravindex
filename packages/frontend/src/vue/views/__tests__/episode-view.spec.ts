@@ -13,6 +13,7 @@ import {
   setAudioElementFactory,
   usePlaybackStore,
   type PlaybackAudio,
+  type PlaybackAudioEvent,
 } from '@/stores/playback.store';
 import { useQueueStore } from '@/stores/queue.store';
 import ClipRowItem from '@/components/ClipRowItem.vue';
@@ -123,11 +124,37 @@ class FakeAudio implements PlaybackAudio {
   src = '';
   currentTime = 0;
   duration = Number.NaN;
+  loadCalls = 0;
+  private readonly listeners = new Map<PlaybackAudioEvent, (() => void)[]>();
+  private pausedFlag = true;
+
+  get paused(): boolean {
+    return this.pausedFlag;
+  }
+
   play(): Promise<void> {
+    this.pausedFlag = false;
+    this.emit('play');
+    this.emit('playing');
     return Promise.resolve();
   }
-  pause(): void {}
-  addEventListener(): void {}
+
+  pause(): void {
+    this.pausedFlag = true;
+    this.emit('pause');
+  }
+
+  load(): void {
+    this.loadCalls += 1;
+  }
+
+  addEventListener(type: PlaybackAudioEvent, listener: () => void): void {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
+  private emit(type: PlaybackAudioEvent): void {
+    for (const listener of this.listeners.get(type) ?? []) listener();
+  }
 }
 
 const Blank = defineComponent({ render: () => null });

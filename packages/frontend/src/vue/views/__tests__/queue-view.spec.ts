@@ -8,6 +8,7 @@ import {
   resetAudioElementFactory,
   setAudioElementFactory,
   type PlaybackAudio,
+  type PlaybackAudioEvent,
 } from '@/stores/playback.store';
 import { useQueueStore, type QueuedClip, type QueuedEpisode } from '@/stores/queue.store';
 import { freshPinia, stubBrowserApis } from '@/components/__tests__/mount-with-vuetify';
@@ -65,11 +66,37 @@ vi.mock('@/utils/save-file', () => ({ saveFile: vi.fn() }));
 class FakeAudio implements PlaybackAudio {
   src = '';
   currentTime = 0;
+  loadCalls = 0;
+  private readonly listeners = new Map<PlaybackAudioEvent, (() => void)[]>();
+  private pausedFlag = true;
+
+  get paused(): boolean {
+    return this.pausedFlag;
+  }
+
   play(): Promise<void> {
+    this.pausedFlag = false;
+    this.emit('play');
+    this.emit('playing');
     return Promise.resolve();
   }
-  pause(): void {}
-  addEventListener(): void {}
+
+  pause(): void {
+    this.pausedFlag = true;
+    this.emit('pause');
+  }
+
+  load(): void {
+    this.loadCalls += 1;
+  }
+
+  addEventListener(type: PlaybackAudioEvent, listener: () => void): void {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
+  private emit(type: PlaybackAudioEvent): void {
+    for (const listener of this.listeners.get(type) ?? []) listener();
+  }
 }
 
 function queuedEpisode(id: number, over: Partial<QueuedEpisode> = {}): QueuedEpisode {
@@ -297,7 +324,15 @@ describe('a queue with clips in it', () => {
   /**
    * ⚠️ **The row right after the one playing cannot move up either.** Nothing
    * may land ahead of `currentIndex` — a clip moved there would never sound
-   * again on its own, and `next()` only ever advances.
+   * again ON ITS OWN, and `next()` only ever advances.
+   *
+   * ⚠️ **The rule did not move when `previous()` arrived** (2026-10-27); only
+   * its reason did. The past is reachable now — by the transport, by the lock
+   * screen — so a clip behind the playhead is one press away rather than dead.
+   * What stays true, and what this assertion is about, is that nothing
+   * AUTOMATIC will ever land on it: a clip parked there needs a button somebody
+   * may never press. The rule lives in the view, not in `queue.move`, which is
+   * why it is asserted here.
    */
   it('will not let a clip move ahead of the one playing', async () => {
     const wrapper = await mountWithThreeClips();

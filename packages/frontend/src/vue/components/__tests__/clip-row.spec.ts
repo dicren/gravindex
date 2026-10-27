@@ -4,7 +4,11 @@ import type { ClipListItem, EpisodeClip } from '#/domain/clips/clip.entity';
 import type { Episode } from '#/domain/episodes/episode.entity';
 import vuetify from '@/plugins/vuetify';
 import ClipRowItem from '@/components/ClipRowItem.vue';
-import { usePlaybackStore, type PlaybackAudio } from '@/stores/playback.store';
+import {
+  usePlaybackStore,
+  type PlaybackAudio,
+  type PlaybackAudioEvent,
+} from '@/stores/playback.store';
 import { useQueueStore } from '@/stores/queue.store';
 import { freshPinia, stubBrowserApis, testRouter } from './mount-with-vuetify';
 
@@ -78,11 +82,37 @@ const EPISODE_CLIP: EpisodeClip = {
 class FakeAudio implements PlaybackAudio {
   src = '';
   currentTime = 0;
+  loadCalls = 0;
+  private readonly listeners = new Map<PlaybackAudioEvent, (() => void)[]>();
+  private pausedFlag = true;
+
+  get paused(): boolean {
+    return this.pausedFlag;
+  }
+
   play(): Promise<void> {
+    this.pausedFlag = false;
+    this.emit('play');
+    this.emit('playing');
     return Promise.resolve();
   }
-  pause(): void {}
-  addEventListener(): void {}
+
+  pause(): void {
+    this.pausedFlag = true;
+    this.emit('pause');
+  }
+
+  load(): void {
+    this.loadCalls += 1;
+  }
+
+  addEventListener(type: PlaybackAudioEvent, listener: () => void): void {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
+  private emit(type: PlaybackAudioEvent): void {
+    for (const listener of this.listeners.get(type) ?? []) listener();
+  }
 }
 
 beforeAll(stubBrowserApis);

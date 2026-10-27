@@ -4,7 +4,14 @@ import { defineComponent, nextTick } from 'vue';
 import { createMemoryHistory, createRouter, type Router } from 'vue-router';
 
 import { isSafeToReload, startAppUpdates } from '@/pwa/start-app-updates';
-import { usePlaybackStore } from '@/stores/playback.store';
+import {
+  resetAudioElementFactory,
+  setAudioElementFactory,
+  usePlaybackStore,
+  type PlayableItem,
+  type PlaybackAudio,
+  type PlaybackAudioEvent,
+} from '@/stores/playback.store';
 import { freshPinia } from '@/components/__tests__/mount-with-vuetify';
 
 /**
@@ -78,6 +85,90 @@ class FakeContainer {
 
   listenerCount(type: string): number {
     return this.listeners.get(type)?.size ?? 0;
+  }
+}
+
+/**
+ * How a browser answers `play()`, in the three shapes the update policy has to
+ * tell apart.
+ *
+ * - `refused` — the autoplay policy said no: the promise rejects with
+ *   `NotAllowedError` and **not one event follows**. The element stays loaded,
+ *   paused and silent, which is the state that used to make the play button lie.
+ * - `sounding` — it really plays: `play` and `playing` fire and the promise
+ *   resolves.
+ * - `buffering` — a cold stream: `loadstart` and `waiting` fire and the promise
+ *   stays pending, so the element has been asked to play and has produced
+ *   nothing yet.
+ */
+type PlaybackBehaviour = 'refused' | 'sounding' | 'buffering';
+
+/**
+ * A stand-in for `HTMLAudioElement` that models **what the browser does**, not
+ * what the app hopes for.
+ *
+ * ⚠️ **It exists because the regression is invisible with a friendly fake.** A
+ * double whose `play()` always resolved and always emitted `play` would keep
+ * every assertion on this file's positive side green while the app it describes
+ * — one that cannot play at all — never updated itself. `pause()` emits
+ * `'pause'`, as a real element does, so a system pause can be reproduced here
+ * too, and `load()` and `currentTime`/`src` are here because the store drives
+ * them and a fake that lacked them would throw instead of failing honestly.
+ */
+class FakeAudio implements PlaybackAudio {
+  src = '';
+  currentTime = 0;
+  /** ⚠️ `NaN` before metadata, exactly as a real element reports it. */
+  duration = Number.NaN;
+  private readonly listeners = new Map<PlaybackAudioEvent, (() => void)[]>();
+  private pausedFlag = true;
+
+  constructor(private readonly behaviour: PlaybackBehaviour) {}
+
+  /** The element's own opinion, which the store reads in `reconcile()`. */
+  get paused(): boolean {
+    return this.pausedFlag;
+  }
+
+  play(): Promise<void> {
+    if (this.behaviour === 'refused') {
+      // ⚠️ Nothing is emitted: a rejected `play()` leaves the element exactly
+      // as it was, and a browser fires no event to say so.
+      return Promise.reject(new DOMException('play() failed', 'NotAllowedError'));
+    }
+
+    this.pausedFlag = false;
+
+    if (this.behaviour === 'buffering') {
+      this.emit('loadstart');
+      this.emit('waiting');
+      // ⚠️ Never settles: the stream has produced nothing, so the request is
+      // still open. The store's `loading` covers exactly this window.
+      return new Promise<void>(() => {});
+    }
+
+    this.emit('play');
+    this.emit('playing');
+    return Promise.resolve();
+  }
+
+  pause(): void {
+    this.pausedFlag = true;
+    this.emit('pause');
+  }
+
+  /** The store calls this on a source change, on the single retry and on
+   *  `stop()`. Nothing to do here: a fake has no bytes to release. */
+  load(): void {}
+
+  addEventListener(type: PlaybackAudioEvent, listener: () => void): void {
+    const existing = this.listeners.get(type) ?? [];
+    this.listeners.set(type, [...existing, listener]);
+  }
+
+  /** What the browser reports while the visitor is not looking. */
+  emit(type: PlaybackAudioEvent): void {
+    for (const listener of this.listeners.get(type) ?? []) listener();
   }
 }
 
@@ -157,6 +248,123 @@ describe('isSafeToReload', () => {
     expect(isSafeToReload({ playing: false, loading: false, routeName: 'creatorSearch' })).toBe(
       true,
     );
+  });
+});
+
+/**
+ * The policy above decides nothing on its own: what it is handed comes straight
+ * off `usePlaybackStore()`, and **the meaning of `playing` is what changed**
+ * (2026-10-27). It is the ELEMENT's state now, not the store's intention — so
+ * these four tests drive the real store over a fake element that behaves like a
+ * browser, rather than feeding the function four literals.
+ *
+ * ⚠️ **The failure they exist to catch is a `playing` that means "we asked for
+ * sound" again.** The first and the last are the cases where the two flags part
+ * company — a refusal drives both to `false`, a system pause clears only the
+ * state — and a policy fed the intent gets one of them wrong. The two in between
+ * are the other side of the coin, so the policy cannot pass by answering "safe"
+ * at everything.
+ */
+describe('isSafeToReload, read off the real playback store', () => {
+  afterEach(() => resetAudioElementFactory());
+
+  const clip: PlayableItem = {
+    kind: 'clip',
+    id: 137,
+    src: 'https://example.test/episodes/93.mp3',
+    start: 30,
+    end: 90,
+  };
+
+  /** A fresh store over an element that answers `play()` as asked. */
+  function storeWith(behaviour: PlaybackBehaviour) {
+    const audio = new FakeAudio(behaviour);
+    setAudioElementFactory(() => audio);
+    freshPinia();
+    return { audio, playback: usePlaybackStore() };
+  }
+
+  const judge = (playback: ReturnType<typeof usePlaybackStore>, routeName = 'home') =>
+    isSafeToReload({
+      playing: playback.playing,
+      loading: playback.loading,
+      routeName,
+    });
+
+  it('lets the app update itself when the browser refuses to play at all', async () => {
+    const { audio, playback } = storeWith('refused');
+
+    playback.play(clip);
+    await flushPromises();
+
+    // The attempt was real — the element took the source and the clip is what
+    // the player is pointed at — and it is also over: rejected, silent.
+    expect(audio.src).toBe(clip.src);
+    expect(playback.current).toEqual(clip);
+    expect(playback.loading).toBe(false);
+
+    // ⚠️ **THE REGRESSION.** This is the state that used to strand the app on
+    // an old build for ever: `playing` was written where the store itself
+    // called `play()`, so a rejection the autoplay policy never told it about
+    // left the flag raised, the app believing it was sounding, and
+    // `isSafeToReload` answering "no" every time the queue went quiet. Nothing
+    // is sounding here — the element never left `pause` — so applying a new
+    // version costs the visitor nothing and must be allowed.
+    expect(playback.playing).toBe(false);
+    expect(judge(playback)).toBe(true);
+  });
+
+  it('still refuses while the element really is sounding', async () => {
+    const { playback } = storeWith('sounding');
+
+    playback.play(clip);
+    await flushPromises();
+
+    expect(playback.playing).toBe(true);
+
+    // ⚠️ The other half, and the reason the test above cannot pass by accident:
+    // a policy that answered "safe" unconditionally would reload on top of
+    // somebody's audio, which is the one thing it exists to prevent. Here the
+    // element fired `play` and `playing`, so there IS something to cut off.
+    expect(judge(playback)).toBe(false);
+  });
+
+  it('counts a cold stream as sounding', async () => {
+    const { playback } = storeWith('buffering');
+
+    playback.play(clip);
+    await flushPromises();
+
+    // A stream that has produced nothing reports `waiting`, never `playing`: the
+    // element is not sounding yet, so the state alone says "safe" and only the
+    // loading window stops the reload. Somebody pressed play a second ago and
+    // the bytes are on their way.
+    expect(playback.playing).toBe(false);
+    expect(playback.loading).toBe(true);
+
+    expect(judge(playback)).toBe(false);
+  });
+
+  it('lets the app update after a pause nobody in the app asked for', async () => {
+    const { audio, playback } = storeWith('sounding');
+
+    playback.play(clip);
+    await flushPromises();
+
+    // A phone call, headphones unplugged, an OS media key: the element stops
+    // itself and fires `pause`. The store keeps the INTENT (so `reconcile()`
+    // can restore it when the page comes back) and clears the STATE — which is
+    // the whole point of them being two flags.
+    audio.emit('pause');
+
+    expect(playback.shouldBePlaying).toBe(true);
+    expect(playback.playing).toBe(false);
+
+    // ⚠️ Nothing is sounding, so a new version may land: rounded off against
+    // the intent this would answer "no" for an app that has been silent for
+    // hours — the same trap as the regression above, one flag over. The queue
+    // keeps its position, so the reload lands back where they were.
+    expect(judge(playback)).toBe(true);
   });
 });
 

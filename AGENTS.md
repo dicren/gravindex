@@ -654,6 +654,30 @@ Real, deliberate, and recorded here so nobody rediscovers them as bugs:
 - **`playback` is still write-only** — nothing reads the counter back. ⚠️ It is
   written by `stores/queue.store.ts` (once per clip per queue position), not by a
   row.
+- **Brave on Android plays nothing in the background until somebody turns it
+  on.** `Background play` (`Ajustes → Media`) is **off by default** in Brave and
+  no page can set it — it is the browser's own switch, above every API used here.
+  ⚠️ Brave has also had real regressions of its own in this area
+  (`brave-browser#51881`, *Media play on background stopped working on Android*),
+  so "it stopped by itself" there is worth checking against the browser before
+  this code. See `packages/frontend/AGENTS.md`, "Reproducción en segundo plano".
+- **iOS/Safari has a ceiling, and it is not a bug here.** The system may sleep
+  the whole page — MediaSession handlers included — once a phone is locked, so
+  the next clip can advance on unlock rather than while the phone was in a
+  pocket. Nothing a web page can ask iOS keeps it awake; only native audio apps
+  do.
+- **There is no audio cache, by design, so the queue stops in a tunnel.**
+  Episodes are third-party mp3s streamed straight from `gravina82.com`; this
+  project stores no copy — no `Cache Storage`, no blob, no re-encode — which is
+  the same decision that keeps `GET /episodes/:id/audio` a byte pipe (see "The
+  UI" and `packages/frontend/AGENTS.md`, "Audio download: cutting a clip
+  client-side"). Losing the connection therefore loses the sound, and that is
+  the trade rather than a missing layer.
+- **Two tabs are two players, and that is out of scope.** Each tab keeps its own
+  queue and its own audio element, both sound at once, and both write `at` into
+  `gravindex.queue` — last write wins. Making the queue a cross-tab singleton
+  would need a lock or a `BroadcastChannel` protocol for a case nobody has
+  reported, over state that is only a list of public ids and one position.
 - **Clips with `end <= start` may exist in the catalogue.** The API refuses to
   create one, but it does not retro-fix the ones already there.
 - **`npm audit` still reports six high findings, and no upgrade fixes them.**

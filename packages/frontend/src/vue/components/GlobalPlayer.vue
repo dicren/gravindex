@@ -10,10 +10,10 @@
  * that appears and disappears would reflow every list under it and move the
  * queue pill — which is also the link to `/cola` — out from under the cursor.
  *
- * Left to right: play/pause · next · title and `Nº id · Episodio` · waveform ·
- * `mm:ss / mm:ss` · vote, share, download · the queue pill · the caricatures.
- * Below 720 px the waveform, the time and the caricatures go and the title takes
- * the space — the design's own rule.
+ * Left to right: previous · play/pause · next · title and `Nº id · Episodio` ·
+ * waveform · `mm:ss / mm:ss` · vote, share, download · the queue pill · the
+ * caricatures. Below 720 px the waveform, the time and the caricatures go and the
+ * title takes the space — the design's own rule.
  *
  * ⚠️ **The rule along its top edge is the progress bar BELOW 720 px, and only
  * there** (draggable since 2026-08-19; narrowed to the phone on 2026-08-22). It
@@ -212,6 +212,22 @@ function seek(event: MouseEvent): void {
   <div class="player-dock">
     <div class="player" :style="{ backgroundImage: `url(${bandUrl})` }">
       <div class="player__scrim" aria-hidden="true" />
+
+      <!-- ⚠️ **The mirror of `next`, and it exists because the queue now has a
+           past** (2026-10-27). It is written BEFORE play in the DOM so the row
+           reads previous · play · next, the order every transport on earth uses;
+           at the first item it restarts what is playing rather than disabling
+           (`queue.hasPrevious`), which is the same rule a music player applies
+           and why the control never has to disappear. -->
+      <button
+        type="button"
+        class="player__previous"
+        :disabled="!queue.hasPrevious"
+        aria-label="Corte anterior de la cola"
+        @click="queue.previous()"
+      >
+        <v-icon icon="mdi-skip-previous" size="17" aria-hidden="true" />
+      </button>
 
       <button
         type="button"
@@ -567,6 +583,11 @@ function seek(event: MouseEvent): void {
   cursor: pointer;
 }
 
+/* ⚠️ **One control facing two ways, so one rule for both** (2026-10-27). The
+   previous button is not a secondary decoration of `next`: same 34 px, same
+   hairline ring, same glyph size, and the two sit either side of play as the row
+   reads. */
+.player__previous,
 .player__next {
   width: 34px;
   height: 34px;
@@ -580,6 +601,7 @@ function seek(event: MouseEvent): void {
 }
 
 .player__play:disabled,
+.player__previous:disabled,
 .player__next:disabled {
   opacity: 0.45;
   cursor: default;
@@ -711,6 +733,17 @@ function seek(event: MouseEvent): void {
     flex: 1;
     min-width: 0;
     max-width: none;
+  }
+
+  /* ⚠️ **The previous control stays on a phone, and it is only narrower.** It
+     is a transport control — the manual test matrix exercises exactly this row
+     on a 390 px screen — so hiding it there would leave the thumb with no way
+     back to the clip it just missed. 30 px instead of 34 buys the 4 px the row
+     needs beside a full-width title, and costs nothing a finger can feel: the
+     play button next to it is 46. */
+  .player__previous {
+    width: 30px;
+    height: 30px;
   }
 
   /* One pill survives; share and download live in the row and on the

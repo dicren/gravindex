@@ -17,16 +17,54 @@
 // element the application actually built. That is instrumentation of the test's
 // own page, not a change to the application — the constructor still returns a
 // real `HTMLAudioElement`, and the app cannot tell.
+//
+// ⚠️ **The seam grew a second half on 2026-10-27, and it is the same idea**: the
+// playback store now believes the ELEMENT (`play`/`pause`/`ended`/`error`)
+// rather than its own calls, so the only way to reproduce a system pause, an
+// `ended` the browser never really reached, or a source that fails twice is to
+// make the element say so. Nothing here fakes the store: the app's own listeners
+// run, on the element the app built, exactly as they run for a browser event.
 
 import { test as base, expect, type Page } from '@playwright/test';
 import { interceptClipAudioDownload } from './audio-download';
 import { interceptEpisodeMedia } from './media';
 import { voterToken } from './constants';
 
+/**
+ * The events a spec may make the element fire by hand.
+ *
+ * ⚠️ Deliberately the same union the playback store listens for, minus the ones
+ * no test needs to invent (`suspend`, `durationchange`, `canplay`): a synthetic
+ * `canplay` would promise metadata that is not there, and one that lies about
+ * the stream is worse than no seam at all.
+ */
+export type SyntheticAudioEvent =
+  | 'ended'
+  | 'error'
+  | 'pause'
+  | 'play'
+  | 'playing'
+  | 'waiting'
+  | 'stalled'
+  | 'loadstart'
+  | 'timeupdate';
+
+/** The observation seam the page keeps, see `page`'s `addInitScript`. */
+export interface AudioSeam {
+  /** The element built last — the app's own, since it builds exactly one. */
+  latest: () => HTMLAudioElement | null;
+  /** Dispatch `type` on that element. `false` when none exists yet. */
+  emit: (type: SyntheticAudioEvent) => boolean;
+  /** The element's `src` as the DOM normalised it (`''` once released). */
+  src: () => string | null;
+}
+
 declare global {
   interface Window {
     /** Every `new Audio()` the page has built, in order. */
     __e2eAudio?: HTMLAudioElement[];
+    /** The functions above, kept on the page so a spec can call them. */
+    __e2eAudioSeam?: AudioSeam;
   }
 }
 
@@ -170,6 +208,22 @@ export const test = base.extend<AppFixtures>({
       } as unknown as typeof Audio;
       Wrapped.prototype = Original.prototype;
       window.Audio = Wrapped;
+
+      // ⚠️ `latest()` and not "the element with the src": the editor owns an
+      // element of its own, and every spec that uses this seam is about the
+      // global player.
+      const latest = (): HTMLAudioElement | null => log[log.length - 1] ?? null;
+
+      window.__e2eAudioSeam = {
+        latest,
+        emit: (type) => {
+          const element = latest();
+          if (element === null) return false;
+          element.dispatchEvent(new Event(type));
+          return true;
+        },
+        src: () => latest()?.src ?? null,
+      };
     }, token);
 
     await use(page);
@@ -198,6 +252,49 @@ export async function audioState(
       src: element.src,
     }));
   });
+}
+
+/**
+ * Make the element fire `type`, exactly as a browser event would.
+ *
+ * ⚠️ **`ended` and `error` are not reachable any other way in a browser test.**
+ * A clip never really runs out — the store stops it at `clip.end` on
+ * `timeupdate` — and the fixture answers every mp3 successfully, so an `ended`
+ * that arrives while a cut is still playing, and a source that will not load,
+ * are both states only a dispatched event can produce. The app's own listeners
+ * are the ones that run.
+ *
+ * Returns `false` when the app has not built its element yet, so a spec fails on
+ * its own assertion rather than on a timeout here.
+ */
+export async function emitAudioEvent(page: Page, type: SyntheticAudioEvent): Promise<boolean> {
+  return page.evaluate((event) => window.__e2eAudioSeam?.emit(event) ?? false, type);
+}
+
+/**
+ * **Pause the element the way the platform does, not the way the app does.**
+ *
+ * ⚠️ The app is not consulted and no store method is called: `HTMLMediaElement.pause()`
+ * makes the browser fire its own `pause` event, which is precisely the case the
+ * playback store has to survive (a call arriving, headphones unplugged, the OS
+ * pausing media). Dispatching a synthetic `pause` instead would leave the
+ * element *actually playing*, and the recovery this seam exists to test could
+ * then never be observed — the element would already be running when
+ * `reconcile()` looked at it.
+ */
+export async function pauseAudioElement(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const element = window.__e2eAudioSeam?.latest() ?? null;
+    if (element === null) return false;
+    element.pause();
+    return true;
+  });
+}
+
+/** The source the element is holding, normalised by the DOM. `null` before the
+ *  app has built one. */
+export async function audioSource(page: Page): Promise<string | null> {
+  return page.evaluate(() => window.__e2eAudioSeam?.src() ?? null);
 }
 
 /** `hh:mm:ss` → seconds. ⚠️ Written here rather than imported from the app: a

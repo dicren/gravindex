@@ -87,6 +87,27 @@ export function useQueueHydration(): void {
     }
   }
 
+  /**
+   * ⚠️ **The queue's resolver seam, and why it has one** (2026-10-27).
+   * `playAt` cannot fetch anything — the store holds keys and the records the
+   * screens already handed it — so when it is asked to play a key nobody has
+   * resolved it remembers the key and asks THIS function. `remember` then starts
+   * it the moment the answer lands, which is what turns a discarded tab's dead
+   * play button into a play button that takes a second and then plays.
+   *
+   * ⚠️ It goes through the same `resolve` above, so both guards apply: one
+   * request per key however many times play is pressed, and a key that 404s is
+   * dropped by `forget`, which also clears the waiting play so it can never fire
+   * against an item that is gone.
+   *
+   * ⚠️ Not unregistered: this composable is mounted once, from `App.vue`, for
+   * the life of the shell, and a store used without it (a spec) simply keeps the
+   * key pending.
+   */
+  queue.setQueueResolver((key) => {
+    void resolve(key);
+  });
+
   // `immediate`, and then again whenever keys arrive from a shared link.
   watch(() => queue.keys, hydrate, { immediate: true });
 }

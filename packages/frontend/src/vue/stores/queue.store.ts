@@ -3,6 +3,7 @@ import { computed, ref, shallowRef, triggerRef, watch } from 'vue';
 
 import { registerPlayUseCase } from '#/config/clips.config';
 import { MIN_RESUME_SECONDS, usePlaybackStore, type PlayableItem } from './playback.store';
+import { useNotificationsStore } from './notifications.store';
 
 /**
  * Everything the queue and the player need to draw a clip, and nothing else.
@@ -324,6 +325,35 @@ export const useQueueStore = defineStore('queue', () => {
   const entries = shallowRef(new Map<QueueKey, QueuedItem>());
 
   const playback = usePlaybackStore();
+  /** The toasts a dead item raises. ⚠️ Plain text only — see
+   *  `notifications.store.ts`. */
+  const notifications = useNotificationsStore();
+
+  /**
+   * How the queue asks somebody else to turn a key into an item.
+   *
+   * ⚠️ **The queue still knows nothing about HTTP.** It holds keys and the
+   * records a screen has already handed it, and nothing else — resolving an id
+   * is `composables/use-queue-hydration.ts`'s job, which is where the request,
+   * the one-attempt-per-key rule and "a 404 disappears silently" all live. This
+   * is only the door it knocks on, the exact shape `setEndedHandler` and
+   * `setErrorHandler` already have on the playback store.
+   *
+   * ⚠️ `null` is a working state, not an error: a store in a spec, or one used
+   * before `App.vue` mounts, leaves the key pending rather than throwing.
+   */
+  let resolver: ((key: QueueKey) => void) | null = null;
+
+  /**
+   * The key somebody asked to play that the queue cannot play YET.
+   *
+   * ⚠️ **The dead play button, remembered.** Chrome discards a backgrounded tab
+   * for memory and restores it with the order, the index and the position
+   * intact but every `entries` record gone — the queue still points at
+   * something and hydration has not answered. Before this, `playAt` returned
+   * quietly there and pressing play did *nothing at all*.
+   */
+  let pendingKey: QueueKey | null = null;
 
   /**
    * Clips whose play has already been counted this session.
@@ -399,9 +429,16 @@ export const useQueueStore = defineStore('queue', () => {
    * is always the one playing; everything before it is `played`, tucked behind
    * a "Mostrar lo que ya ha sonado" toggle in the view. `currentIndex === -1`
    * (nothing loaded) makes `played` empty and `upcoming` the whole queue.
-   * `next()` only ever moves forward, so nothing before the cut can start
-   * sounding again on its own — which is also why the view refuses to let a
-   * drag or an arrow put a clip ahead of `currentIndex`.
+   *
+   * ⚠️ **`next()` only ever advances, and that is still why the view refuses to
+   * let a drag or an arrow put a clip ahead of `currentIndex`.** A clip parked
+   * there would never sound ON ITS OWN, indistinguishable from deleting it, and
+   * with the history collapsed it would vanish from view too. What changed with
+   * `previous()` is only the other half of the story: the past is reachable
+   * again, so a clip behind the playhead is one press away rather than dead —
+   * but nothing AUTOMATIC will ever land on it, so it must not be put there by
+   * dragging either. See `QueueView.vue`, which states the same rule from the
+   * screen's side.
    */
   const played = computed((): QueueRow[] =>
     rows.value.filter((row) => row.index < currentIndex.value),
@@ -428,6 +465,14 @@ export const useQueueStore = defineStore('queue', () => {
   const hasNext = computed(
     () => currentIndex.value >= 0 && currentIndex.value < keys.value.length - 1,
   );
+
+  /**
+   * ⚠️ **Available whenever the queue points at something, even at the first
+   * item**: `previous()` there restarts what is playing, which is still a
+   * previous — the same rule every music player applies, and the reason the
+   * control never has to disappear.
+   */
+  const hasPrevious = computed(() => currentIndex.value >= 0);
 
   function contains(clipId: number): boolean {
     return keys.value.includes(clipKey(clipId));
@@ -502,13 +547,58 @@ export const useQueueStore = defineStore('queue', () => {
   function remember(item: QueuedItem): void {
     entries.value.set(keyOf(item), item);
     triggerRef(entries);
+
+    /**
+     * ⚠️ **The other half of the dead play button** — see `playAt`. Every
+     * resolution passes through here, hydrated or from a row that already had
+     * the data, so this is the one place "the record somebody was waiting for
+     * has arrived" can be noticed without the queue knowing where it came from.
+     *
+     * ⚠️ **The `-1` is normal, not an error**: the key may have left the order
+     * while its request was in the air (`forget` after a 404, a removal, or
+     * `Vaciar`). There is nothing to start, and nothing to say about it.
+     */
+    const arrived = pendingKey;
+    if (arrived === null || arrived !== keyOf(item)) return;
+
+    pendingKey = null;
+    const index = keys.value.indexOf(arrived);
+    if (index !== -1) playAt(index);
   }
 
   /** Load `index` into the player and start it. */
   function playAt(index: number): void {
     const key = keys.value[index];
-    const item = key === undefined ? undefined : entries.value.get(key);
-    if (key === undefined || item === undefined) return;
+    if (key === undefined) return;
+
+    const item = entries.value.get(key);
+    if (item === undefined) {
+      /**
+       * ⚠️ **An unresolved key is a request, not a silence.** The queue can
+       * point at a clip nobody has fetched yet — a tab Chrome discarded for
+       * memory comes back with the order, the index and the position and not
+       * one `entries` record — and returning quietly there made the play button
+       * do nothing whatsoever.
+       *
+       * ⚠️ **`currentIndex` does NOT move until the record arrives**, and that
+       * is the same invariant `at` lives by, seen from the other side. The queue
+       * keeps pointing at what is actually loaded and sounding until there is
+       * something real to point at; `remember` then calls back in here and the
+       * normal path below applies unchanged — element first, write second.
+       *
+       * ⚠️ It is also what keeps a 404 harmless: a pending key that turns out to
+       * be a deleted clip is dropped by `forget`, and because the index never
+       * left the previous item, removing it cannot take the sound away from
+       * something else.
+       *
+       * ⚠️ With no resolver registered — a store in a spec, or before `App.vue`
+       * mounts — the key simply stays pending, silently, and a later `remember`
+       * still starts it: the visitor asked.
+       */
+      pendingKey = key;
+      resolver?.(key);
+      return;
+    }
 
     currentIndex.value = index;
     // ⚠️ The element first, the write second — the reverse of the order this
@@ -632,6 +722,50 @@ export const useQueueStore = defineStore('queue', () => {
   }
 
   /**
+   * How long somebody has to have been listening, in seconds, before
+   * `previous()` means "start this one again" rather than "go back one".
+   *
+   * ⚠️ The same shape every player uses, and not arbitrary: going back to the
+   * item before while a cut is halfway through its first sentence is never what
+   * a thumb reaching for `previous` wants — it wants the beginning of this one.
+   */
+  const PREVIOUS_RESTART_SECONDS = 3;
+
+  /**
+   * The mirror of `next()`: back one item, or — past three seconds — back to
+   * the start of what is playing.
+   *
+   * ⚠️ **This is what `hasPrevious` and the media session's `previoustrack`
+   * drive**, and the reason `/cola`'s "nothing may move ahead of `currentIndex`"
+   * rule now has a different justification: the past is reachable again, so a
+   * clip put there can sound — but *automatically* it still cannot, because
+   * `next()` only ever advances.
+   *
+   * ⚠️ **With nothing in the element it LOADS** the item the queue points at,
+   * rather than seeking audio that does not exist: a cold boot has an index and
+   * no sound, and pressing previous there is a play instruction.
+   */
+  function previous(): void {
+    if (currentIndex.value < 0) return;
+
+    if (playback.current !== null && playback.elapsed > PREVIOUS_RESTART_SECONDS) {
+      playback.seek(0);
+      persist();
+      return;
+    }
+    if (currentIndex.value > 0) {
+      playAt(currentIndex.value - 1);
+      return;
+    }
+    if (playback.current === null) {
+      playAt(currentIndex.value);
+      return;
+    }
+    playback.seek(0);
+    persist();
+  }
+
+  /**
    * Remove one clip.
    *
    * ⚠️ Removing the clip that is PLAYING moves playback to the next one — or
@@ -644,6 +778,9 @@ export const useQueueStore = defineStore('queue', () => {
 
     const wasCurrent = index === currentIndex.value;
     const wasPlaying = playback.playing;
+    // ⚠️ A key on its way out is not a play waiting to happen: a resolution
+    // that lands after the row was removed must not start anything.
+    if (pendingKey === key) pendingKey = null;
     keys.value = keys.value.filter((other) => other !== key);
 
     if (wasCurrent) {
@@ -694,6 +831,7 @@ export const useQueueStore = defineStore('queue', () => {
   /** `Vaciar`: clears the list **and** stops playback. A player still going
    *  over an empty queue is the state nobody can explain. */
   function clear(): void {
+    pendingKey = null;
     playback.stop();
     keys.value = [];
     currentIndex.value = -1;
@@ -703,6 +841,11 @@ export const useQueueStore = defineStore('queue', () => {
   /** Drop a key that no longer resolves. ⚠️ Silent by contract: a clip deleted
    *  through the admin surface must not leave a 404 in someone's queue. */
   function forget(key: QueueKey): void {
+    // ⚠️ **First, and outside the `includes` guard.** A key that 404s while it
+    // is the one somebody is waiting to play would otherwise stay pending for
+    // ever: the play it is holding would fire against a resolution that is
+    // never coming.
+    if (pendingKey === key) pendingKey = null;
     if (!keys.value.includes(key)) return;
     remove(key);
     entries.value.delete(key);
@@ -743,6 +886,89 @@ export const useQueueStore = defineStore('queue', () => {
    * which drives its own audio — unaffected.
    */
   playback.setEndedHandler(next);
+
+  /**
+   * The keys that have died since the last thing that actually played.
+   *
+   * ⚠️ **A batch, not a tally.** A remote mp3 that 404s is dead for everybody,
+   * and a queue shared from a link can hold four of them in a row. What a
+   * visitor needs to hear once is "this one is broken, I am moving on" — not
+   * that sentence four times.
+   */
+  const skippedThisBatch = new Set<QueueKey>();
+
+  /**
+   * **A dead item is skipped, and the batch says so once** (2026-10-27).
+   *
+   * ⚠️ **This is the other seam the rewrite in `playback.store.ts` added.** A
+   * source that fails twice there (one retry already bought) is dead — a 404, an
+   * unsupported codec — and retrying for ever is a player in a loop nobody can
+   * see. Skipping is the queue's business, so it lands here, with the same
+   * handover as the end of a clip: `next()` advances, or stops at the last item.
+   *
+   * ⚠️ **The notice is raised when the set becomes non-empty, never per death.**
+   * Text only, and it says what happened and what the player is doing about it.
+   * It must not read as a mistake the visitor made: the cut is fine, the file
+   * behind it is not.
+   */
+  function handlePlaybackError(): void {
+    const key = keys.value[currentIndex.value];
+    // ⚠️ Nothing to mark and nothing to advance from: a failed load with the
+    // queue pointing nowhere is not a state worth inventing a move for.
+    if (key === undefined) return;
+
+    skippedThisBatch.add(key);
+    if (skippedThisBatch.size === 1) {
+      notifications.push({
+        level: 'warning',
+        title: 'Audio roto',
+        text: 'No se ha podido cargar este audio. Sigo con el siguiente.',
+      });
+    }
+
+    next();
+  }
+
+  playback.setErrorHandler(handlePlaybackError);
+
+  /**
+   * ⚠️ **A batch ends when something actually produced sound.** Without this,
+   * the set would keep its first dead key for the whole session and a second
+   * broken file an hour later would be skipped in silence — the visitor would
+   * watch the player jump past a clip with no explanation at all.
+   *
+   * ⚠️ **`hasAudio`, NOT `playing`, and the difference is the whole point.** A
+   * browser fires `play` the moment `play()` is accepted — before a byte of the
+   * file has arrived — so watching `playing` cleared the batch on the very next
+   * attempt of a run of dead files, and a queue of three unloadable clips spoke
+   * three times instead of once (measured: `test/e2e/specs/17-background-playback.spec.ts`).
+   * Only `playing` — folded into `hasAudio` — means the element got as far as
+   * producing sound.
+   *
+   * ⚠️ `flush: 'sync'`, like the two persistence watchers below and for the same
+   * kind of reason: the `playing` event and the next `error` can arrive in the
+   * same task, and a batch cleared in a microtask would still be holding the
+   * previous death when the next one is counted.
+   */
+  watch(
+    () => playback.hasAudio,
+    (produced) => {
+      if (produced) skippedThisBatch.clear();
+    },
+    { flush: 'sync' },
+  );
+
+  /**
+   * ⚠️ **The resolver seam, and the reason `playAt` needs one.** The queue knows
+   * keys and nothing about the network: when it is asked to play an item nobody
+   * has resolved, it holds the key and asks whoever owns the request.
+   * `composables/use-queue-hydration.ts` is that owner, and it sets this on the
+   * one mount the app makes. `null` — a fresh store, or one in a spec — leaves
+   * the key pending and throws nothing.
+   */
+  function setQueueResolver(fn: ((key: QueueKey) => void) | null): void {
+    resolver = fn;
+  }
 
   /**
    * Follow the playhead into `localStorage`, five seconds at a time.
@@ -801,6 +1027,7 @@ export const useQueueStore = defineStore('queue', () => {
     isEmpty,
     totalSeconds,
     hasNext,
+    hasPrevious,
     contains,
     containsEpisode,
     remember,
@@ -809,6 +1036,7 @@ export const useQueueStore = defineStore('queue', () => {
     enqueueMany,
     replaceWith,
     next,
+    previous,
     remove,
     move,
     clear,
@@ -816,5 +1044,6 @@ export const useQueueStore = defineStore('queue', () => {
     playAt,
     toggleAt,
     togglePlayback,
+    setQueueResolver,
   };
 });

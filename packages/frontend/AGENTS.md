@@ -417,9 +417,14 @@ Mechanics worth knowing before editing it:
 
 ### Stores (`vue/stores/`)
 
-- **`playback.store.ts`** — one audio element, see below.
+- **`playback.store.ts`** — one audio element, see below, plus the
+  intention-versus-state split in "Reproducción en segundo plano".
 - **`queue.store.ts`** — ⚠️ **the centre of gravity of the whole player.** See
   "The queue" below.
+- ⚠️ **Not a store, and it lives outside this folder**:
+  **`media-session/start-media-session.ts`** — the system media session, i.e. the
+  lock screen's title, cover and transport. Mounted from `App.vue`, owns no
+  state. See "Reproducción en segundo plano".
 - **`notifications.store.ts`** — the toast queue. 2.5 s auto-dismiss, click to
   pin, an accessible close button. ⚠️ **Bodies are plain text, never `v-html`.**
   Markup built from API error payloads, which quote user-submitted clip titles
@@ -541,6 +546,144 @@ one element and one `currentClipId`, so "only one clip plays at a time" is
   `next` on it — and `handleEnded()` **rewinds first, then hands over**, or a
   slow `next` leaves the episode audible past the cut.
 
+## Reproducción en segundo plano (2026-10-27)
+
+What the sound does while nobody is looking at the tab. Three pieces, and there
+is still ONE audio element: `playback.store.ts` learns to tell a system pause
+from a decision, `media-session/start-media-session.ts` projects the player onto
+the lock screen, and `queue.store.ts` gains the verb it was missing.
+
+### Intención vs. estado
+
+⚠️ **`playing` is the ELEMENT's state, `shouldBePlaying` is the visitor's, and
+they part company on purpose.** Until 2026-10-27 `playing` was written only
+where this store itself called `play`/`pause`, so a pause nobody here asked for
+— a phone call, headphones pulled out, a frozen tab, an OS media key — left the
+play button lying: the store still claimed to be sounding and the element had
+stopped. Now the element's own events own `playing` (`play`/`playing` true;
+`pause`/`ended`/`error` false) while `intent` — read as `shouldBePlaying` —
+holds what was ASKED for.
+
+- ⚠️ **Conflating the two breaks both directions at once.** Reading a system
+  pause as intent is what leaves the tab silent for ever, because there is
+  nothing left to restore; reading the intent as state is the lying play button.
+  A system pause must never be understood as "they wanted silence".
+- `shouldBePlaying` is a `computed` over a private `intent` ref, so the only
+  ways in are `play()`/`resume()` (true) and `pause()`/`rewind()`/`stop()`
+  (false). **No component sets it.**
+- ⚠️ **`reconcile()` is the only thing that puts them back together**, and it
+  reads the ELEMENT — `paused` and the event half both — never the store's
+  memory. That is what makes it work for a pause nobody in this codebase made.
+- ⚠️ **`loading` is the element's too**: true from `play()` on a new item and
+  from `loadstart`/`waiting`/`stalled`, false on `playing`/`canplay`/
+  `timeupdate`. It reopens on a mid-clip stall, which is exactly the window in
+  which a silent element must not be mistaken for a paused one.
+- ⚠️ **`startPlaybackReconciliation()`, mounted once from `App.vue`**, is what
+  calls it: `visibilitychange` (on the way back only), the Page Lifecycle
+  `resume`, and `pageshow` for the back/forward cache. Nothing else in the app
+  notices that the element stopped while the page was away.
+- ⚠️ **The element is appended to `document.body`** (`display: none`). Safari is
+  markedly better behaved — it keeps `currentTime` and keeps playing in the
+  background — with a media element that is in the tree. Still one `new Audio()`
+  and one construction.
+
+### Recuperación
+
+- ⚠️ **An `error` buys exactly ONE retry, from the CURRENT position.** A blip on
+  a remote mp3 is the common case and worth a second attempt; restarting at
+  `item.start` would quietly rewind somebody twelve minutes into a clip, which
+  is worse than failing. The retry is a new generation of the load, so the
+  rejection from the attempt it superseded is ignored rather than reported.
+- ⚠️ **The second failure is not retried.** A source that failed twice is dead —
+  a 404, an unsupported codec — and retrying for ever is a player in a loop
+  nobody can see. The store gives up on the item and hands over to
+  `setErrorHandler`, the sibling of `setEndedHandler` and the same shape on
+  purpose: skipping is the queue's business, and this store still knows nothing
+  about a queue.
+- **The queue skips, and says so ONCE per batch** (`queue.store.ts`). A shared
+  queue can hold four dead mp3s in a row, and what a visitor needs is one
+  `Audio roto · No se ha podido cargar este audio. Sigo con el siguiente.`, not
+  four. ⚠️ The batch ends when something actually plays, or a second broken file
+  an hour later would be skipped in silence.
+- ⚠️ **A `play()` refused by the autoplay policy clears the intent and keeps the
+  position**, and an `AbortError` from a superseded load is not an error at all:
+  one is recognised by the rejection's name, the other by the load generation.
+- ⚠️ **`stop()` is the way out of a stuck element**, and that is why it clears
+  `loadedSrc` and releases the source. Pausing over a `src` the element has
+  decided not to play — a stream that never recovered, an mp3 that 404'd, a tab
+  frozen mid-load — is the state that used to need a reload. `Vaciar` is the
+  screen that calls it.
+
+### Media Session
+
+`media-session/start-media-session.ts`, mounted once from `App.vue`.
+
+- ⚠️ **Without it there is no lock screen at all, and on Android the queue stops
+  at the end of the first cut.** A page gets a notification, media keys and a
+  `next` control only by populating `navigator.mediaSession`; the browser
+  supplies none of that from an `<audio>` element on its own.
+- **It draws** the clip's title (or the episode's), the episode's title as the
+  artist — the podcast for an episode — `Índice gravinero` as the album, and
+  `cover` as the artwork.
+- ⚠️ **It adds nothing to the page and owns no state.** Every value is read from
+  `playback` and `queue`, and every button calls the same store method a control
+  on screen calls. One-way projection, nothing read back, no second queue, no
+  second element, no state that could disagree with the player.
+- **The eight actions are registered unconditionally at mount**
+  (`play`, `pause`, `stop`, `seekbackward`, `seekforward`, `seekto`, `nexttrack`,
+  `previoustrack`). Some browsers want a `play` handler to exist before they
+  raise the notification at all, and a session that only gained `next` while
+  something plays would gain it after the screen was already locked.
+- ⚠️ **Recorded decision: `stop` pauses, it does not empty the queue.** A
+  media-session stop is a thumb away from `pause` on a lock screen, and emptying
+  somebody's hand-arranged queue from there would destroy work with no undo.
+  `/cola`'s `Vaciar` is the only thing that clears a queue, and it says so.
+- ⚠️ **`setPositionState` is called only for a finite duration above zero.**
+  `NaN`, `Infinity` and `0` all throw, an uncaught throw there takes the rest of
+  the session's work with it, and skipping the call is honest: no progress bar is
+  exactly what the app knows about an unmeasured episode.
+- ⚠️ **`metadata = null` on an empty queue** — and on a key hydration has not
+  resolved — is a value, not a failure. It is what takes the notification away,
+  and inventing a title would put a stale name on somebody's lock screen.
+
+### `previous`
+
+The transport is `previous · play · next` (`GlobalPlayer.vue`), and the left one
+is not a decoration of the right one.
+
+- ⚠️ **Past three seconds, `previous()` restarts what is playing** instead of
+  going back: a thumb reaching for it half-way through a first sentence wants
+  the beginning of this one.
+- **Before three seconds it goes back one; at the first item it restarts what is
+  playing — or loads it, if nothing is loaded.** A cold boot has an index and no
+  sound, so pressing it there is a play instruction rather than a seek into
+  nothing.
+- ⚠️ **`hasPrevious` is true whenever the queue points at something, including
+  the first item**, which is why the control never has to disappear.
+- ⚠️ **`playAt` on a key nobody has resolved now ASKS for it** —
+  `setQueueResolver` plus one pending key — and starts it when the record
+  arrives. That is the dead play button Chrome leaves behind when it discards a
+  backgrounded tab: order, index and position survive, every record is gone.
+  ⚠️ `currentIndex` does not move until the item is real, and a key that 404s is
+  dropped together with the play that was waiting on it.
+
+### Límites
+
+Deliberate, not pending. The ones the whole system shares are also in the root
+`AGENTS.md`, "Known gaps"; the watchdog note is only this package's.
+
+- ⚠️ **The 2 s hidden-page watchdog is a NET, not the guarantee.** Chrome
+  throttles timers in a hidden tab to roughly one a minute, and a silent element
+  that is still advancing its clock looks perfectly healthy to it. What actually
+  gets the audio back is `reconcile()` on `visibilitychange`; the watchdog covers
+  the tab that comes back with the element still frozen.
+- **A frozen or discarded tab may only resume when it is restored or unlocked**,
+  so the advance can land on unlock instead of while the phone was locked.
+- **iOS/Safari**: the platform may sleep the whole page — MediaSession handlers
+  included — and what happens next is its decision, not this code's.
+- **Brave on Android ships `Background play` (`Ajustes → Media`) OFF**, and no
+  code can compensate for a setting that is the browser's.
+
 ## The queue (`stores/queue.store.ts`)
 
 The wished-for global player, built. `keys` + `currentIndex` + an `entries` Map
@@ -612,9 +755,13 @@ length, `0` when nothing has measured it (see `PlayableItem.end`), and it has no
   scrolling it under a growing history. Row numbers stay the real position
   (`row.index + 1`), so a jump in the numbers is the tell that something is
   folded away. ⚠️ **Nothing may reorder to or past `currentIndex`** — `next()`
-  only ever advances, so a clip dropped ahead of what is playing would never
-  sound again on its own, indistinguishable from deleting it, and with the
-  history collapsed it would vanish from view too. That rule lives in the view
+  only ever advances, so a clip dropped before what is playing would never sound
+  again on its own, indistinguishable from deleting it, and with the history
+  collapsed it would vanish from view too. ⚠️ **`previous()` (2026-10-27)
+  changed the justification, not the rule**: the past is reachable again, so a
+  clip behind the playhead is one press away rather than dead — but nothing
+  AUTOMATIC will ever land on it, because only `next()` advances. The asymmetry
+  is about what is reachable automatically. That rule lives in the view
   (the drag handle is absent on rows at or before `currentIndex`, the up-arrow
   disables at the boundary), not in `move()` itself, which stays the same
   unconstrained primitive `queue.store.spec.ts`'s `move(2, 0)` relies on.
@@ -1433,6 +1580,11 @@ have:
    where there is nothing to save. ⚠️ It is by route **name**, because `/creator`
    (`creatorSearch`, the library with an overlay over it) and `/creator/:title`
    (the editor) share a path prefix and mean opposite things.
+   ⚠️ **`playing` there is the ELEMENT's state** (2026-10-27), so an app whose
+   element stopped on its own — a system pause, a frozen tab — no longer blocks
+   its own update for ever; rounded off against the intention instead, it would
+   answer "no" for an app that had been silent for hours, which is the same trap
+   one flag over. `start-app-updates.spec.ts` pins that.
 4. ⚠️ **No `virtual:pwa-register`, and `injectRegister: null`.** Its `updateSW()`
    couples "activate the new worker" with "reload now", and this app needs those
    apart. Registering by hand also keeps the plugin out of the Vitest module
