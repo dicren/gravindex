@@ -115,8 +115,13 @@ export interface QueueRow {
 /**
  * ⚠️ The fourth `localStorage` key, joining `gravindex.voter-token`,
  * `gravindex.analytics-consent` and `gravindex.list-limit.<id>`.
+ *
+ * ⚠️ **Exported since 2026-10-27**, because another tab's write to it is the one
+ * event `tab-coordination/start-tab-coordination.ts` listens for. The key stays
+ * the store's own: nothing outside reads or writes it, and `syncFromStorage`
+ * below is the only door an outside event comes through.
  */
-const STORAGE_KEY = 'gravindex.queue';
+export const QUEUE_STORAGE_KEY = 'gravindex.queue';
 
 /**
  * What is written. ⚠️ **Keys, the position in the queue, and the position
@@ -211,7 +216,7 @@ function readStoredQueue(): StoredQueue {
   if (storage === null) return empty;
 
   try {
-    const raw = storage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(QUEUE_STORAGE_KEY);
     if (raw === null) return empty;
 
     const parsed: unknown = JSON.parse(raw);
@@ -250,7 +255,7 @@ function writeStoredQueue(state: StoredQueue): void {
   if (storage === null) return;
 
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(state));
+    storage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Private windows, full quota, disabled storage. The queue still works for
     // this session — it just will not survive a reload, which is the same
@@ -312,6 +317,19 @@ export const useQueueStore = defineStore('queue', () => {
   const lastVisit = resumePointOf(stored);
   let positionKey: QueueKey | null = lastVisit?.key ?? null;
   let positionAt: number = lastVisit?.at ?? 0;
+
+  /**
+   * ⚠️ **True only while `syncFromStorage` is letting go of the element.**
+   * `playback.stop()` moves `playing` and `elapsed`, and the two persistence
+   * watchers at the bottom of this store believe both of those. Adoption is a
+   * read: a write triggered from here would put the two tabs in a conversation
+   * with each other, and it could land on a position newer than the one just
+   * adopted. By that point the state is already the right one — which is why the
+   * bug this prevents is a write nobody asked for rather than a resurrected
+   * queue — but `adoption never writes back` has to hold for all of them, not
+   * just for the ones somebody thought of.
+   */
+  let adopting = false;
 
   /**
    * What each id actually is, for the ids this session has met.
@@ -523,6 +541,102 @@ export const useQueueStore = defineStore('queue', () => {
     positionKey = keys.value[currentIndex.value] ?? null;
     positionAt = at;
     writeStoredQueue({ keys: [...keys.value], index: currentIndex.value, at });
+  }
+
+  /** Does `stored` say exactly what this tab already has? */
+  function matchesStored(stored: StoredQueue): boolean {
+    return (
+      stored.index === currentIndex.value &&
+      stored.keys.length === keys.value.length &&
+      stored.keys.every((key, index) => keys.value[index] === key) &&
+      (stored.index === -1 || stored.at === positionAt)
+    );
+  }
+
+  /**
+   * Take the queue another TAB wrote (2026-10-27).
+   *
+   * ⚠️ **The mirror of `persist`, and it is called from OUTSIDE the store.**
+   * `tab-coordination/start-tab-coordination.ts` is the one listening for the
+   * browser's `storage` event; it asks, this answers. Same split as `remember`
+   * and `forget` being called by hydration: the store owns the format, the
+   * shell owns the wiring.
+   *
+   * Three rules, and each of them is a state that really happens:
+   *
+   * 1. **Idle means wholesale.** A tab with no sound takes the order, the index
+   *    and the position exactly as they were written. That is what makes "pause
+   *    here, press play in the other tab, carry on from that second" work.
+   * 2. **A tab that has the sound keeps its ITEM.** It takes the order — a clip
+   *    added or removed elsewhere shows up at once — but pins `currentIndex` to
+   *    the key that is sounding, because the player's meta line reads
+   *    `queue.current`: an index adopted from elsewhere would put one title on
+   *    the transport while the other tab's file came out of it.
+   * 3. **If that key left the queue, the sound stops.** The item is gone from
+   *    the list everybody shares, and continuing to play it is a player pointing
+   *    at nothing — the same answer `remove()` gives to the same question.
+   *
+   * ⚠️ **"Has the sound" means the INTENT too, not just the element.** A cold
+   * remote stream spends a second or two between `play()` being accepted and the
+   * first byte, and adopting another tab's index in that window would move the
+   * playhead of a play already in flight.
+   *
+   * ⚠️ **It never writes back.** Adoption is a read: persisting what was just
+   * read would have two tabs answering each other for ever, and it would rewrite
+   * the position under the feet of the tab that is actually listening. That is
+   * not a matter of discipline — releasing the element below makes `playing` and
+   * `elapsed` move, and both of those are watched by this very store's two
+   * persistence watchers — so `adopting` is what keeps those two quiet for the
+   * length of this function.
+   */
+  function syncFromStorage(): void {
+    const stored = readStoredQueue();
+    if (matchesStored(stored)) return;
+
+    const sounding = keys.value[currentIndex.value];
+    const hasTheSound = playback.playing || playback.shouldBePlaying;
+
+    /**
+     * ⚠️ **The sounding tab keeps its item and takes only the order** — unless the
+     * item it is sounding is no longer in the queue at all, in which case it is
+     * about to stop and there is nothing left to keep.
+     */
+    if (sounding !== undefined && hasTheSound) {
+      const index = stored.keys.indexOf(sounding);
+      if (index !== -1) {
+        keys.value = stored.keys;
+        currentIndex.value = index;
+        return;
+      }
+    }
+
+    const resumed = resumePointOf(stored);
+    keys.value = stored.keys;
+    currentIndex.value = stored.index;
+    positionKey = resumed?.key ?? null;
+    positionAt = resumed?.at ?? 0;
+
+    /**
+     * ⚠️ **Whatever the element was holding is released**, and this is not
+     * tidying. `playback.play()` decides between "load a new item" and "resume
+     * the one already in the element" by identity (`isLoaded`), so an element
+     * still holding the same clip would resume from ITS clock and ignore the
+     * `at` just adopted — which is precisely the second this feature exists for.
+     * Releasing it also keeps the player's `00:40 / 03:02:37` honest while the
+     * transport shows an item this tab never loaded.
+     *
+     * ⚠️ **After the state above, never before**: `stop()` moves `playing` and
+     * `elapsed`, and the persistence watchers it wakes must find the adopted
+     * state if they are to write anything at all.
+     */
+    if (playback.current === null && !hasTheSound) return;
+
+    adopting = true;
+    try {
+      playback.stop();
+    } finally {
+      adopting = false;
+    }
   }
 
   /** ⚠️ An episode has no `start` field at all — it always plays from the
@@ -984,6 +1098,7 @@ export const useQueueStore = defineStore('queue', () => {
   watch(
     () => playback.elapsed,
     (seconds) => {
+      if (adopting) return;
       if (currentIndex.value < 0) return;
       if (Math.abs(seconds - positionAt) < PERSIST_EVERY_SECONDS) return;
       persist();
@@ -1008,6 +1123,7 @@ export const useQueueStore = defineStore('queue', () => {
   watch(
     () => playback.playing,
     (isPlaying) => {
+      if (adopting) return;
       if (!isPlaying && currentIndex.value >= 0) persist();
     },
     { flush: 'sync' },
@@ -1045,5 +1161,6 @@ export const useQueueStore = defineStore('queue', () => {
     toggleAt,
     togglePlayback,
     setQueueResolver,
+    syncFromStorage,
   };
 });

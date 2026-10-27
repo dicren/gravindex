@@ -55,6 +55,7 @@ import { goToErrorPage, goToNotFoundPage } from '@/router/error-navigation';
 import { useMomentsStore } from '@/stores/moments.store';
 import { useNotificationsStore } from '@/stores/notifications.store';
 import { usePlaybackStore } from '@/stores/playback.store';
+import { claimPlayback, onSoundTaken } from '@/tab-coordination/start-tab-coordination';
 import { domainErrorNotice } from '@/utils/domain-error-notice';
 import { buildEpisodeUrl } from '@/utils/episode-url';
 import { formatClipTime } from '@/utils/format-time';
@@ -242,6 +243,8 @@ const validation = reactive({ title: false, tags: false });
 /** ⚠️ Not a `ref`: it is an imperative resource, and wrapping a media element in
  *  one only invites the template to touch it. */
 let audio: EditorAudio | null = null;
+/** ⚠️ The subscription to "another tab took the sound". See `onMounted`. */
+let stopTakingSound: (() => void) | null = null;
 const currentTime = ref(0);
 const playing = ref(false);
 /** Between a seek and the stream catching up — visible on a remote mp3. */
@@ -416,9 +419,20 @@ onMounted(() => {
   // the episode page would otherwise go on talking underneath this screen's own
   // element — the only place the two audio owners can meet.
   playback.pause();
+  /**
+   * ⚠️ **The other half of "one thing at a time", across TABS** (2026-10-27).
+   * `playback.pause()` hugs the player in this tab; another tab taking the sound
+   * cannot reach this element (`tab-coordination/start-tab-coordination.ts`
+   * cannot see it either), so this screen is told and pauses itself. No claim is
+   * announced on the way out — giving the sound up never is.
+   */
+  stopTakingSound = onSoundTaken(() => {
+    if (playing.value) togglePlay();
+  });
 });
 
 onBeforeUnmount(() => {
+  stopTakingSound?.();
   detachAudio();
   clearTimeout(waveformTimer);
 });
@@ -434,6 +448,14 @@ function togglePlay(): void {
   }
   keepInsideCut();
   playing.value = true;
+  /**
+   * ⚠️ **The editor's element is not the player's, so nothing else can see it
+   * start.** `playback.store`'s watcher is what normally claims the sound, and
+   * this screen never touches that store beyond pausing it on the way in — so
+   * without this line a cut would sound here while the other tab's episode kept
+   * talking underneath it, which is the one place the two audio owners meet.
+   */
+  claimPlayback();
   // ⚠️ An autoplay policy can refuse this. Not worth a toast — the button just
   // goes back to offering "play".
   void Promise.resolve(audio.play()).catch(() => {

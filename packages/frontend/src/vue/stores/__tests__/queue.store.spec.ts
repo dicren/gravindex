@@ -1358,3 +1358,196 @@ describe('where you were listening', () => {
     expect(audio.currentTime).toBe(clip(1).start);
   });
 });
+
+/**
+ * **The queue another TAB wrote** (2026-10-27).
+ *
+ * ⚠️ **This is the half of the fix that is about data, not about sound.** Until
+ * this existed `localStorage` was read once, when the store was created: tab B
+ * never learned what tab A had queued, and — worse — a background tab holding a
+ * position from boot rewrote it over the one the listening tab had reached,
+ * because `persist()` writes the whole record.
+ *
+ * The rules under test are the four in `syncFromStorage`'s own comment: wholesale
+ * while silent, order-only while sounding, stop when the sounding item left, and
+ * never write back.
+ */
+describe('adopting the queue another tab wrote', () => {
+  function storedQueue(): { keys: string[]; index: number; at: number } {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null');
+  }
+
+  /** What the other tab wrote: another list, another index, another second. */
+  function otherTabWrote(keys: string[], index: number, at = 0): void {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys, index, at }));
+  }
+
+  /** An element that accepted `play()` and has produced nothing yet — the
+   *  window a cold remote stream spends before its first byte. */
+  class SilentAudio extends FakeAudio {
+    override play(): Promise<void> {
+      this.playCalls += 1;
+      return Promise.resolve();
+    }
+  }
+
+  it('takes the order, the index and the position while this tab is silent', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1'], index: 0, at: 20 }));
+    const queue = useQueueStore();
+    queue.remember(clip(1));
+
+    otherTabWrote(['c1', 'c2'], 1, 45);
+    queue.syncFromStorage();
+
+    expect(queue.keys).toEqual([clipKey(1), clipKey(2)]);
+    expect(queue.currentIndex).toBe(1);
+
+    /**
+     * ⚠️ **The point of the whole exercise**: pressing play here carries on at
+     * the second the other tab reached, not at the one this tab booted with.
+     */
+    queue.remember(clip(2));
+    queue.togglePlayback();
+    expect(audio.currentTime).toBe(clip(2).start + 45);
+  });
+
+  it('keeps the item that is sounding and takes only the order', () => {
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.enqueue(clip(1));
+    queue.enqueue(clip(2));
+    expect(playback.playing).toBe(true);
+
+    otherTabWrote(['c5', 'c1', 'c2'], 0);
+    queue.syncFromStorage();
+
+    // ⚠️ The order arrives whole — c5 is new — but the index follows the KEY
+    // that is sounding: the player's meta line reads `queue.current`, and an
+    // index adopted from elsewhere would put one title on the transport while
+    // the other tab's file came out of it.
+    expect(queue.keys).toEqual(['c5', clipKey(1), clipKey(2)]);
+    expect(queue.currentIndex).toBe(1);
+    expect(playback.isPlaying(1)).toBe(true);
+    // ⚠️ And it wrote nothing back: adoption is a read, or two tabs would
+    // answer each other for ever.
+    expect(storedQueue()).toEqual({ keys: ['c5', 'c1', 'c2'], index: 0, at: 0 });
+  });
+
+  it('stops when the item that was sounding left the queue', () => {
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.enqueue(clip(1));
+    queue.enqueue(clip(2));
+
+    otherTabWrote(['c2'], 0, 12);
+    queue.syncFromStorage();
+
+    // ⚠️ Gone from the list everybody shares: continuing would be a player
+    // pointing at an item nobody's queue contains, which is what `remove()`
+    // refuses too.
+    expect(playback.current).toBeNull();
+    expect(playback.playing).toBe(false);
+    expect(queue.keys).toEqual([clipKey(2)]);
+    expect(queue.currentIndex).toBe(0);
+
+    /**
+     * ⚠️ **And the removal is not undone.** Stopping the sound moves `playing`
+     * and `elapsed`, both of which this store watches to persist — so without
+     * `adopting`, letting go would immediately write the pre-adoption queue back
+     * over the record the other tab just wrote, putting the removed clip back in
+     * it. This assertion is that bug.
+     */
+    expect(storedQueue()).toEqual({ keys: ['c2'], index: 0, at: 12 });
+
+    // ...and the position the other tab left is the one this tab now resumes at.
+    queue.remember(clip(2));
+    queue.togglePlayback();
+    expect(audio.currentTime).toBe(clip(2).start + 12);
+  });
+
+  it('does not adopt under a play that has not started sounding yet', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1', 'c2'], index: 0, at: 0 }));
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.remember(clip(1));
+    setAudioElementFactory(() => new SilentAudio());
+    queue.playAt(0);
+
+    // The element has produced nothing, and the intention is what says a play is
+    // in flight — a cold stream spends a second or two in exactly this state.
+    expect(playback.playing).toBe(false);
+    expect(playback.shouldBePlaying).toBe(true);
+
+    otherTabWrote(['c2', 'c1'], 0);
+    queue.syncFromStorage();
+
+    // The order arrived, and the playhead did not move with it.
+    expect(queue.keys).toEqual([clipKey(2), clipKey(1)]);
+    expect(queue.currentIndex).toBe(1);
+  });
+
+  it('leaves an identical state alone, element included', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1'], index: 0, at: 20 }));
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.remember(clip(1));
+    queue.togglePlayback();
+    audio.advanceTo(clip(1).start + 20);
+    queue.togglePlayback();
+    expect(storedQueue().at).toBe(20);
+
+    queue.syncFromStorage();
+
+    // ⚠️ A write that says what this tab already knows is not a reason to
+    // release an element, and this is the write that arrives every five seconds
+    // while another tab is the one listening.
+    expect(playback.current).not.toBeNull();
+    expect(queue.currentIndex).toBe(0);
+  });
+
+  it('writes nothing while it lets go of the element', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1'], index: 0, at: 20 }));
+    const queue = useQueueStore();
+    const playback = usePlaybackStore();
+    queue.remember(clip(1));
+    queue.togglePlayback();
+    queue.togglePlayback();
+    expect(playback.current).not.toBeNull();
+
+    otherTabWrote(['c1', 'c2'], 1, 45);
+    // ⚠️ The spy goes after the other tab's write, or it counts the test's own.
+    const writes = vi.spyOn(Storage.prototype, 'setItem');
+    queue.syncFromStorage();
+
+    /**
+     * ⚠️ **Adoption is a READ**, and this is the assertion that makes `adopting`
+     * more than ceremony: letting go of the element moves `playing` and
+     * `elapsed`, both watched by this store's own persistence. A write here
+     * would put the two tabs in a conversation with each other and could land on
+     * a position newer than the one just adopted.
+     */
+    expect(playback.current).toBeNull();
+    expect(writes).not.toHaveBeenCalled();
+    writes.mockRestore();
+  });
+
+  /**
+   * ⚠️ **The regression this whole change is worth making for**, stated the way
+   * it happened: tab B boots at 20 s, tab A listens on to 45 s, and then B
+   * queues something. Before adoption, that single `persist()` wrote B's boot
+   * position over A's — 25 seconds of listening gone, from a tab nobody was
+   * looking at.
+   */
+  it('never overwrites a position it did not hear with the one it booted with', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ keys: ['c1'], index: 0, at: 20 }));
+    const queue = useQueueStore();
+    queue.remember(clip(1));
+
+    otherTabWrote(['c1'], 0, 45);
+    queue.syncFromStorage();
+
+    queue.enqueue(clip(2));
+
+    expect(storedQueue()).toEqual({ keys: ['c1', 'c2'], index: 0, at: 45 });
+  });
+});

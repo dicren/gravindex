@@ -425,6 +425,10 @@ Mechanics worth knowing before editing it:
   **`media-session/start-media-session.ts`** — the system media session, i.e. the
   lock screen's title, cover and transport. Mounted from `App.vue`, owns no
   state. See "Reproducción en segundo plano".
+- ⚠️ **Also not a store**: **`tab-coordination/start-tab-coordination.ts`** — two
+  tabs sharing one queue and one sound. Mounted from `App.vue`, draws nothing,
+  and the only state it owns is the position and the id of this page load. See
+  "Dos pestañas".
 - **`notifications.store.ts`** — the toast queue. 2.5 s auto-dismiss, click to
   pin, an accessible close button. ⚠️ **Bodies are plain text, never `v-html`.**
   Markup built from API error payloads, which quote user-submitted clip titles
@@ -684,6 +688,100 @@ Deliberate, not pending. The ones the whole system shares are also in the root
 - **Brave on Android ships `Background play` (`Ajustes → Media`) OFF**, and no
   code can compensate for a setting that is the browser's.
 
+## Dos pestañas (2026-10-27)
+
+Two tabs of this site, one queue and one sound. Before this, every tab was a
+player of its own: `gravindex.queue` was read **once**, when the store was
+created, so tab B never learned what tab A had queued; both elements sounded at
+once; and because `persist()` writes the whole record, a background tab holding
+its boot position rewrote `at` over the one the listening tab had reached — 25
+seconds of listening lost, from a tab nobody was looking at.
+
+⚠️ **It is coordination, not a session.** There is no leader, no lease and no
+command channel: **a tab cannot press play, seek or skip in another one.** Two
+independent pieces do the work, and neither adds a storage key, a request or a
+line of server state:
+
+| Piece | Transport | What it does |
+|---|---|---|
+| The queue follows the last writer | the browser's `storage` event | `queue.syncFromStorage()` |
+| A tab that starts sounding claims it | `BroadcastChannel` | the others `playback.pause()` |
+
+```
+vue/tab-coordination/start-tab-coordination.ts       mounted once, from App.vue
+vue/stores/queue.store.ts → syncFromStorage()        where the adoption rules are
+vue/views/EditorView.vue → claimPlayback()           the editor's own element
+vue/views/EditorView.vue → onSoundTaken()            ...and the way back in
+```
+
+Five things that are decisions rather than details:
+
+1. ⚠️ **`storage` for the queue, `BroadcastChannel` for the claim**, and that
+   split is the point. A `storage` event fires in every OTHER tab of the origin
+   and **never in the one that wrote** — exactly the semantics needed, with no
+   protocol to version and no new key (it is the same `gravindex.queue`, now
+   exported as `QUEUE_STORAGE_KEY`). A claim cannot ride on it: "I am taking the
+   sound" is not state, and writing it down would put a second meaning in a
+   record that is supposed to describe only a queue.
+2. ⚠️ **A tab that has the sound keeps its ITEM and takes only the order.** The
+   order arrives whole — a clip queued or removed elsewhere shows up at once —
+   but `currentIndex` is pinned to the key that is sounding, because the player's
+   meta line reads `queue.current`: an index adopted from elsewhere would put one
+   title on the transport while the other tab's file came out of it. If that key
+   left the queue, the sound stops, which is the same answer `remove()` gives.
+3. ⚠️ **"Has the sound" means the INTENT too.** A cold remote stream spends a
+   second or two between `play()` being accepted and the first byte, and adopting
+   another tab's index in that window would move the playhead of a play already
+   in flight.
+4. ⚠️ **Adoption releases the element.** `playback.play()` decides between "load
+   a new item" and "resume the one already in the element" by identity, so an
+   element still holding the same clip would resume from ITS clock and ignore the
+   `at` just adopted — which is exactly the second this exists for. It also keeps
+   the player's `00:40 / 03:02:37` honest while the transport shows an item this
+   tab never loaded. ⚠️ And releasing it moves `playing` and `elapsed`, both
+   watched by this store's own two persistence watchers, so an `adopting` flag
+   keeps those quiet: **adoption never writes back.** Without it, letting go of
+   the sound would answer the other tab with a write.
+5. ⚠️ **The claim always wins, and there is no tie-break on purpose.** Two real
+   presses can never be simultaneous — a tab switch and a click separate them —
+   so the only way to produce two claims in one instant is a script, and "both
+   tabs asked at once, so neither plays" is a truthful answer to that. A window
+   that let the earlier claim keep the sound (by tab id, by whoever claimed
+   first) is a coin flip that can **leave two tabs sounding**, which is the very
+   thing this exists to prevent. The ordering that matters is free: a tab that
+   was already sounding had its claim delivered to the newcomer *before* the
+   newcomer had any sound, so the newcomer ignored it — and the newcomer's claim
+   reaches the sounding tab now, so it pauses. **Last tab to start sounding keeps
+   it.**
+
+⚠️ **Nothing is drawn, and that is a decision.** No banner, no badge, no toast:
+somebody who presses play is looking at the tab that starts sounding, and the
+transport there already says so. A notice would only be read by the tab that
+went quiet, which is by definition not the one being watched.
+
+⚠️ **The editor claims by itself** (`claimPlayback()` from `togglePlay`, not from
+`onMounted`): it owns an element of its own and never touches
+`playback.playing`, so the watcher cannot see it — and it claims when it starts
+making sound, not when it opens, or merely opening the editor would silence the
+other tab. ⚠️ **And it is told when another tab takes the sound**
+(`onSoundTaken`), because `playback.pause()` cannot reach an element this screen
+owns: without that half, tab A's editor would keep talking under tab B's player.
+The listener is registered on mount and removed on unmount, and it pauses only
+if it was playing.
+
+⚠️ **A tab frozen, discarded or restored out of the back/forward cache missed
+every one of those events**, so `visibilitychange` (on the way back) and
+`pageshow` ask again. Both handlers are idempotent, which is what makes it free.
+
+⚠️ **No `BroadcastChannel` is a working configuration**, like a browser with no
+media session: the queue still follows the last writer, and only the courtesy
+pause is lost. Old browsers, a sandboxed iframe and storage disabled all look
+exactly like that.
+
+The limits are the ones in the root `AGENTS.md`: no remote control, one position
+for one item (the last listener wins it), and two writes landing in the same
+instant are still last-write-wins.
+
 ## The queue (`stores/queue.store.ts`)
 
 The wished-for global player, built. `keys` + `currentIndex` + an `entries` Map
@@ -712,6 +810,10 @@ length, `0` when nothing has measured it (see `PlayableItem.end`), and it has no
   describes `keys[index]`**, written in the same call, so the queue can never
   point at one item and the position at another. See "Where you were listening"
   below.
+  ⚠️ **And the same record is how a second tab hears about it**: the browser's
+  `storage` event (see "Dos pestañas") is what makes another tab's enqueue,
+  removal or five-second position write arrive as `syncFromStorage()`, which
+  never writes back.
   ⚠️ **The reader still accepts the older `{ ids: number[] }` shape** and loads
   every one of those numbers as a clip, so a stored queue is never emptied. It is
   never written again.
@@ -815,6 +917,13 @@ belongs to.
   another's key. It also returns the **unspent boot position** while nothing has
   played: without that, a single `enqueue` before pressing play would persist a
   `0` over the spot somebody came back for.
+- ⚠️ **A position written by ANOTHER TAB is heard, not guessed at** (2026-10-27).
+  `syncFromStorage()` files an adopted `at` under the key it belongs to, so the
+  next write from this tab — even one that only queues something — carries the
+  second the listening tab had reached instead of this tab's boot position. That
+  was a real loss of 25 seconds of somebody's listening before it existed; see
+  "Dos pestañas", and `queue.store.spec.ts`'s "never overwrites a position it did
+  not hear with the one it booted with".
 - ⚠️ **Nothing on screen announces it before play is pressed, and that is a
   decision.** A cold boot already shows the clip the queue points at — the
   player's `player__meta` reads `queue.current`, not `playback.current` — so the
@@ -1643,7 +1752,7 @@ kept in step with the version in both `package.json`s and `constants/version.ts`
 
 ## Tests
 
-`npm test` → **1041 Vitest tests**, jsdom, no browser and no
+`npm test` → **1135 Vitest tests**, jsdom, no browser and no
 server. That is exactly what the hexagonal split buys: `core/domain` and
 `core/application` test against stubs, `core/infrastructure` against a stubbed
 `fetch`, and `vue/` with `@vue/test-utils` over a real Vuetify instance

@@ -384,8 +384,8 @@ Two layers, and the distinction matters when one goes red:
 
 | Layer | Command | What it is |
 |---|---|---|
-| **Unit** | `npm test` | **691** Jest tests (backend) + **1041** Vitest tests (frontend). ⚠️ Several backend suites need a **live Postgres**; each builds its own `gravindex_test_*` database and never touches `gravindex`. ⚠️ **No frontend unit test may reach the network** — jsdom serves from `http://localhost:3000`, which IS the dev backend, so `vitest.setup.ts` makes the default `fetch` throw. It is there because a spec once wrote 39 real rows |
-| **E2E** | `npm run test:e2e` | **122** Playwright tests over the real browser: debounce, infinite scroll, request cancellation, URL filters, the queue and its share links, playback, vote/tag, the editor, the slider, the injected meta tags, ingestion, mis momentos, the calendar |
+| **Unit** | `npm test` | **691** Jest tests (backend) + **1135** Vitest tests (frontend). ⚠️ Several backend suites need a **live Postgres**; each builds its own `gravindex_test_*` database and never touches `gravindex`. ⚠️ **No frontend unit test may reach the network** — jsdom serves from `http://localhost:3000`, which IS the dev backend, so `vitest.setup.ts` makes the default `fetch` throw. It is there because a spec once wrote 39 real rows |
+| **E2E** | `npm run test:e2e` | **130** Playwright tests over the real browser: debounce, infinite scroll, request cancellation, URL filters, the queue and its share links, playback, vote/tag, the editor, the slider, the injected meta tags, ingestion, mis momentos, the calendar, two tabs |
 
 ⚠️ **e2e needs a running candidate backend and a disposable database —
 neither is `gravindex-db`.** `npm run test:db:up && npm run
@@ -673,11 +673,15 @@ Real, deliberate, and recorded here so nobody rediscovers them as bugs:
   UI" and `packages/frontend/AGENTS.md`, "Audio download: cutting a clip
   client-side"). Losing the connection therefore loses the sound, and that is
   the trade rather than a missing layer.
-- **Two tabs are two players, and that is out of scope.** Each tab keeps its own
-  queue and its own audio element, both sound at once, and both write `at` into
-  `gravindex.queue` — last write wins. Making the queue a cross-tab singleton
-  would need a lock or a `BroadcastChannel` protocol for a case nobody has
-  reported, over state that is only a list of public ids and one position.
+- **Two tabs share one queue and one sound, and there is no remote control**
+  (2026-10-27). The queue follows the tab that last wrote it — the browser's
+  `storage` event, no new key, no new state — and a tab that starts sounding
+  claims it over a `BroadcastChannel` so the others pause politely rather than
+  playing underneath it. What stays out of scope is the rest of a "session":
+  **a tab cannot press play, seek or skip in another one**, the position is still
+  one number for one item (so the last listener wins it), and two writes landing
+  in the same instant are still last-write-wins. See
+  `packages/frontend/AGENTS.md`, "Dos pestañas".
 - **Clips with `end <= start` may exist in the catalogue.** The API refuses to
   create one, but it does not retro-fix the ones already there.
 - **`npm audit` still reports six high findings, and no upgrade fixes them.**

@@ -80,6 +80,36 @@ vi.mock('@/queries/tags.query', () => ({
   }),
 }));
 
+/**
+ * ⚠️ **The cross-tab seam, stubbed so this screen's half of it is observable**
+ * (2026-10-27). The editor claims the sound when it plays and gives it up when
+ * another tab does; both halves are one call each into
+ * `tab-coordination/start-tab-coordination.ts`, and neither is otherwise visible
+ * from here.
+ */
+const tabCoordination = vi.hoisted(() => ({
+  claim: vi.fn(),
+  listeners: [] as (() => void)[],
+  subscriptions: 0,
+  unsubscriptions: 0,
+}));
+
+vi.mock('@/tab-coordination/start-tab-coordination', () => ({
+  claimPlayback: tabCoordination.claim,
+  onSoundTaken: (listener: () => void) => {
+    tabCoordination.subscriptions += 1;
+    tabCoordination.listeners.push(listener);
+    return () => {
+      tabCoordination.unsubscriptions += 1;
+    };
+  },
+}));
+
+/** Some other tab started sounding, as the shell would report it. */
+function anotherTabTookTheSound(): void {
+  for (const listener of [...tabCoordination.listeners]) listener();
+}
+
 // ── The fake audio element ───────────────────────────────────────────────────
 
 /**
@@ -267,6 +297,10 @@ beforeEach(() => {
   clipsApi.failure = undefined;
   audioSpy.instances = [];
   audioSpy.duration = 10_020;
+  tabCoordination.claim.mockClear();
+  tabCoordination.listeners = [];
+  tabCoordination.subscriptions = 0;
+  tabCoordination.unsubscriptions = 0;
 });
 
 afterEach(() => {
@@ -778,6 +812,47 @@ describe('the transport', () => {
 
     await clickByLabel(view, 'Pausar');
     expect(audio.playing).toBe(false);
+  });
+
+  /**
+   * ⚠️ **`claimPlayback()` from the play path, and not from `onMounted`**: this
+   * screen owns an element the player store cannot see, so nothing else can
+   * announce that it is making sound — and a claim on the way in would silence
+   * the other tab just for somebody opening the editor.
+   */
+  it('announces that it is taking the sound when it plays', async () => {
+    const view = await mountReady();
+    expect(tabCoordination.claim).not.toHaveBeenCalled();
+
+    await clickByLabel(view, 'Reproducir');
+    await flushPromises();
+
+    expect(tabCoordination.claim).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives the sound up when another tab takes it', async () => {
+    const view = await mountReady();
+    const audio = lastAudio();
+    await clickByLabel(view, 'Reproducir');
+    await flushPromises();
+    expect(audio.playing).toBe(true);
+
+    anotherTabTookTheSound();
+    await nextTick();
+
+    expect(audio.playing).toBe(false);
+    // ⚠️ A pause, not a reset: the cut is where it was, and the transport goes
+    // back to offering play in the same screen.
+    await clickByLabel(view, 'Reproducir');
+  });
+
+  it('stops listening for that when it unmounts', async () => {
+    const view = await mountReady();
+    expect(tabCoordination.subscriptions).toBe(1);
+
+    view.unmount();
+
+    expect(tabCoordination.unsubscriptions).toBe(1);
   });
 
   it('jumps to the start of the cut, and to five seconds before its end', async () => {

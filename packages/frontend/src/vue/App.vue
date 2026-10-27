@@ -55,6 +55,12 @@
  * listening. It also arms the hidden-page watchdog. Nothing is drawn; in a
  * browser that fires none of those events it costs three listeners and nothing
  * else. See `stores/playback.store.ts`.
+ *
+ * ⚠️ `startTabCoordination` is the app's half of "two tabs are not two players"
+ * (2026-10-27): the queue follows the tab that last wrote it, and a tab that
+ * starts sounding pauses the others. It draws nothing either, and it is mounted
+ * at the shell because both halves outlive every screen. See
+ * `tab-coordination/start-tab-coordination.ts`.
  */
 import { onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -68,6 +74,7 @@ import { useQueueHydration } from '@/composables/use-queue-hydration';
 import { startAnalytics } from '@/analytics/start-analytics';
 import { startMediaSession } from '@/media-session/start-media-session';
 import { startPlaybackReconciliation } from '@/stores/playback.store';
+import { startTabCoordination } from '@/tab-coordination/start-tab-coordination';
 import { startAppUpdates } from '@/pwa/start-app-updates';
 
 const stopAnalytics = startAnalytics(useRouter());
@@ -81,6 +88,9 @@ onUnmounted(stopMediaSession);
 
 const stopReconciliation = startPlaybackReconciliation();
 onUnmounted(stopReconciliation);
+
+const stopTabCoordination = startTabCoordination();
+onUnmounted(stopTabCoordination);
 
 useQueueHydration();
 </script>
