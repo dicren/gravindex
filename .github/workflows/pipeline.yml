@@ -14,6 +14,12 @@
 # single-worker, no-retry semantics that take ~10 minutes; running it on every
 # push would make the loop people actually use four times slower for a signal
 # the tag gate already gives.
+#
+# ⚠️ Every third-party action here is pinned to its Node 24 major, and that is
+# the whole point of the versions: the older lines declare
+# `runs.using: node20`, which the hosted runners now force to Node 24 and report
+# as a deprecation warning on every single run. Bumping one of these needs a
+# look at whether the new major still runs on `node24`.
 name: pipeline
 
 on:
@@ -64,8 +70,8 @@ jobs:
       # may depend on a real signing key.
       JWT_SECRET: ci-signing-key-not-a-secret-000000000000000000000000
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -80,8 +86,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -113,7 +119,7 @@ jobs:
       - name: Run the suite
         run: npm run test:e2e
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-artifacts
@@ -130,14 +136,14 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile
@@ -155,7 +161,7 @@ jobs:
       # never drift. Its own cache scope, or the two builds would fight over the
       # same GHA cache entry.
       - name: Build and push the Caddy image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./deploy/caddy
           file: ./deploy/caddy/Dockerfile
@@ -210,8 +216,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       # ⚠️ The notes are the web's own changelog, not `--generate-notes`: the
