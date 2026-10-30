@@ -1,3 +1,7 @@
+# ⚠️ HISTÓRICO: este fichero ya no se monta en ningún contenedor. El borde
+# compartido con buitrelista.es vive en el repositorio de buitresa,
+# `deploy/edge/Caddyfile`, y es el que atiende indice.gravina82.com.
+#
 # Caddy for gravindex in production.
 #
 # Automatic HTTPS: the certificate is obtained from Let's Encrypt on the first

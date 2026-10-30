@@ -58,9 +58,9 @@ packages are at **`2.0.3`**.
 | `eslint.config.mjs` | Flat config (eslint 10) with **two exports**: `base`, carrying no repo-layout paths, spread by each package; and the `default` used from the root, which ignores `packages/**`. **Bans `any` repo-wide**, and is not type-aware on purpose |
 | `.prettierrc`, `.prettierignore`, `.editorconfig` | Single quotes, trailing commas, 100 columns. `.prettierignore` skips `*.md`, `openapi.json`, MikroORM's snapshots and the generated API client |
 | `docker-compose.yml` | Compose project `gravindex`. `gravindex-db` (Postgres 16-alpine, ⚠️ **the database that ships to production — nothing in this repo wipes it**), `gravindex-api`, one-shot `gravindex-seed`, and a disposable `gravindex-test-db` behind a **`test`-profile** |
-| `docker-compose.prod.yml` | The stack that runs on `prod.dicren.com`: the same database and API, plus Caddy for TLS, with **no published ports except 80/443**. It pulls `ghcr.io/dicren/gravindex:${IMAGE_TAG}` instead of building, and keeps a one-shot `gravindex-seed` behind a **`seed` profile** |
+| `docker-compose.prod.yml` | The stack that runs on `prod.dicren.com`: the same database and API, with **no published ports**. TLS and 80/443 belong to the shared edge Caddy in `/opt/edge` (maintained in the buitresa repo). It pulls `ghcr.io/dicren/gravindex:${IMAGE_TAG}` instead of building, and keeps a one-shot `gravindex-seed` behind a **`seed` profile** |
 | `Dockerfile` | Multi-stage: `deps` → `build` (both workspaces) → `prod-deps` → `runtime`. The runtime image runs the backend, bakes `SPA_DIST_PATH` at the frontend build it copied in, and carries `psql` plus `packages/backend/seed/` for `gravindex-seed` to load (the SQL file is git-ignored, so a clone's image has none) |
-| `deploy/` | Production runbook (`README.md`), the `Caddyfile`, `caddy/` (the custom Caddy image with the rate-limit module) and `server/` — the deploy, watchdog, backup, email and heartbeat scripts plus their systemd units. Installed on the server by `deploy/server/install.sh` |
+| `deploy/` | Production runbook (`README.md`), the historical `Caddyfile` (the live edge config is in the buitresa repo), `caddy/` (the custom Caddy image source) and `server/` — the deploy, watchdog, backup, email and heartbeat scripts plus their systemd units. Installed on the server by `deploy/server/install.sh` |
 | `.github/workflows/pipeline.yml` | The only workflow: lint + types + unit tests on every push/PR; on a `v*` tag, also Playwright, **two** GHCR images (the app and the custom Caddy), the SSH deploy and a GitHub Release built from the web changelog |
 | `.env` / `.env.example` | The **one** environment file for everything — see "Environment". `.env` is gitignored, the template is committed |
 | `test/` | `testdb/` (lifecycle for the disposable Postgres the e2e suite runs against), `e2e/` (Playwright) — see "Tests and validation" |
@@ -575,19 +575,22 @@ the version is `2.0.3` in both `package.json`s and in `constants/version.ts`.
 
 ## Deployment
 
-The stack is **two images** — the backend serving the API and the built SPA,
-and a Caddy built with the rate-limit module — plus Postgres. Nothing external
-is fetched at boot (see "Running it").
+The stack is **one application image** — the backend serving the API and the
+built SPA — plus Postgres. TLS, rate limiting and the public 80/443 are a
+**shared edge Caddy** in `/opt/edge`, maintained in the buitresa repository and
+shared with buitrelista.es. Nothing external is fetched at boot (see "Running
+it").
 
 Production is `prod.dicren.com` (`54.37.157.210`), public at
-**https://indice.gravina82.com**, running `docker-compose.prod.yml`.
+**https://indice.gravina82.com**, running `docker-compose.prod.yml` for the app
+and the database and the edge stack for TLS.
 
 **A deploy is a tag.** Pushing `v2.0.3` runs the pipeline, which tests, builds
-and pushes `ghcr.io/dicren/gravindex:v2.0.3` **and**
-`ghcr.io/dicren/gravindex-caddy:v2.0.3`, then SSHes into the server where the
-forced-command deploy script checks out that tag, writes it into
-`/opt/gravindex/.env`, pulls every image, restarts the stack, and waits for
-`/api/health` **and** for the public URL to answer through Caddy. If either does
+and pushes `ghcr.io/dicren/gravindex:v2.0.3` (and, for history, the old Caddy
+image), then SSHes into the server where the forced-command deploy script
+checks out that tag, writes it into `/opt/gravindex/.env`, pulls every image,
+restarts the stack, and waits for `/api/health` **and** for the public URL to
+answer through the shared edge. If either does
 not, the script checks out the previously deployed tag and brings that back. A
 push to `develop` only runs the fast tests; it never deploys.
 
@@ -622,8 +625,8 @@ raises an email. It is the only mechanism here that lives outside the server.
 
 ### Rate limiting
 
-`deploy/Caddyfile` limits by client IP: `login` 5/min, `audio` 60/min, writes
-30/min and `/api` 300/min. ⚠️ **Requests, not bytes** — see "Known gaps".
+The shared edge Caddyfile (buitresa repo, `deploy/edge/Caddyfile`) limits by
+client IP: `login` 5/min, `audio` 60/min, writes 30/min and `/api` 300/min. ⚠️ **Requests, not bytes** — see "Known gaps".
 
 ### Backups
 

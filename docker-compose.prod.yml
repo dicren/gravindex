@@ -3,8 +3,9 @@
 # It is deliberately a SECOND compose file rather than an override of
 # `docker-compose.yml`: the development file builds the image locally and
 # publishes the API and Postgres on host ports. Production pulls a prebuilt
-# image from GHCR, publishes nothing but Caddy's 80/443, and pins every service
-# to a restart policy.
+# image from GHCR, publishes no host ports at all, and pins every service to a
+# restart policy. TLS and the public 80/443 belong to the shared edge Caddy in
+# `/opt/edge` (maintained in the buitresa repo), not to this file.
 #
 #     docker compose -f docker-compose.prod.yml --env-file .env up -d
 #
@@ -14,8 +15,7 @@
 # into an empty string, and an empty image tag fails much later and much less
 # clearly than at parse time.
 #
-# ⚠️ Nothing here mounts a host path except the Caddyfile and the seed
-# directory. The database lives in the named volume below and is backed up by
+# ⚠️ Nothing here mounts a host path except the seed directory. The database lives in the named volume below and is backed up by
 # `/usr/local/bin/gravindex-backup`, not by copying files around.
 name: gravindex-prod
 

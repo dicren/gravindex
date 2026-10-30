@@ -1,13 +1,15 @@
 # Despliegue
 
 Producción es **un servidor** (`prod.dicren.com`) con `docker-compose.prod.yml`:
-Postgres, la API (que sirve también la SPA) y Caddy. El dominio público es
-**https://indice.gravina82.com**.
+Postgres y la API (que sirve también la SPA). El dominio público es
+**https://indice.gravina82.com**. TLS y el 80/443 son del **Caddy de borde
+compartido** en `/opt/edge`, que también atiende buitrelista.es; su
+configuración vive en el repositorio de buitresa (`deploy/edge/Caddyfile`).
 
-Hay **dos imágenes propias**, publicadas con el mismo tag en cada release:
+Se siguen publicando **dos imágenes propias** con el mismo tag:
 `ghcr.io/dicren/gravindex:<tag>` y `ghcr.io/dicren/gravindex-caddy:<tag>` (Caddy
-con el módulo de rate limiting, que la imagen oficial no trae; se construye en
-`deploy/caddy/Dockerfile`).
+con el módulo de rate limiting; se construye en `deploy/caddy/Dockerfile`). El
+borde ya no usa la segunda: la suya se construye en el repo de buitresa.
 
 ## Desplegar
 
@@ -19,7 +21,7 @@ git push origin v2.0.1
 ```
 
 `.github/workflows/pipeline.yml` corre lint, tipos, tests unitarios, Playwright,
-publica las dos imágenes, despliega por SSH y publica la release con la entrada
+publica la imagen de la app (y la de Caddy, que el borde ya no usa), despliega por SSH y publica la release con la entrada
 del changelog de `packages/frontend/src/vue/views/AboutView.vue`. **Un push a
 `develop` no despliega**, solo pasa los tests rápidos.
 

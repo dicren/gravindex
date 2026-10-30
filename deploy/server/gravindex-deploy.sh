@@ -123,9 +123,8 @@ set_image_tag "$TAG"
 compose config -q || die "docker-compose.prod.yml does not validate"
 
 log "pulling the images for $TAG"
-# ⚠️ ALL services, not just the API: the Caddy image is a custom build published
-# under the same tag, and leaving it behind would deploy a Caddyfile to a binary
-# that may not understand it.
+# ⚠️ ALL services, not just the API: the seed image shares the tag, and a
+# partial pull would leave a mixed release.
 compose pull || die "docker pull failed"
 
 log "starting the stack"
