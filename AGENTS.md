@@ -44,7 +44,7 @@ belongs to gravina82; the code is MIT.
 
 An **npm-workspaces monorepo** (`workspaces: ["packages/backend",
 "packages/frontend"]`), one root lockfile, one root `node_modules`. Both
-packages are at **`2.0.2`**.
+packages are at **`2.0.3`**.
 
 | Path | Stack | Role |
 |---|---|---|
@@ -570,8 +570,8 @@ stopped being a 220 px slab with a white-backgrounded PNG on it; the art was
 re-exported with a real alpha channel and is a watermark now. ⚠️ The joke is
 unchanged, in all three places it appears.
 
-⚠️ **The `2.0.2` changelog entry lives in `AboutView.vue`**, written by hand, and
-the version is `2.0.2` in both `package.json`s and in `constants/version.ts`.
+⚠️ **The `2.0.3` changelog entry lives in `AboutView.vue`**, written by hand, and
+the version is `2.0.3` in both `package.json`s and in `constants/version.ts`.
 
 ## Deployment
 
@@ -582,9 +582,9 @@ is fetched at boot (see "Running it").
 Production is `prod.dicren.com` (`54.37.157.210`), public at
 **https://indice.gravina82.com**, running `docker-compose.prod.yml`.
 
-**A deploy is a tag.** Pushing `v2.0.2` runs the pipeline, which tests, builds
-and pushes `ghcr.io/dicren/gravindex:v2.0.2` **and**
-`ghcr.io/dicren/gravindex-caddy:v2.0.2`, then SSHes into the server where the
+**A deploy is a tag.** Pushing `v2.0.3` runs the pipeline, which tests, builds
+and pushes `ghcr.io/dicren/gravindex:v2.0.3` **and**
+`ghcr.io/dicren/gravindex-caddy:v2.0.3`, then SSHes into the server where the
 forced-command deploy script checks out that tag, writes it into
 `/opt/gravindex/.env`, pulls every image, restarts the stack, and waits for
 `/api/health` **and** for the public URL to answer through Caddy. If either does

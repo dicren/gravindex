@@ -146,7 +146,7 @@ if wait_ready; then
 fi
 
 log "the new stack never became healthy — last 80 log lines follow"
-compose logs --tail=80 gravindex-api caddy || true
+compose logs --tail=80 gravindex-api || true
 
 if [ -z "$PREV" ] || [ "$PREV" = "$TAG" ]; then
   die "no previous tag to roll back to; the stack is left as it is"

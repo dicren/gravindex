@@ -46,7 +46,7 @@ compose() {
   docker compose --project-directory "$REPO" -f "$COMPOSE_FILE" --env-file "$ENV_FILE" "$@"
 }
 
-for service in gravindex-db gravindex-api caddy; do
+for service in gravindex-db gravindex-api; do
   id="$(compose ps -aq "$service" 2>/dev/null || true)"
 
   if [ -z "$id" ]; then

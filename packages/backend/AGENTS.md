@@ -9,7 +9,7 @@ file only covers what is specific to this package.
 
 ## What this is
 
-A **NestJS 12 + MikroORM 7 (PostgreSQL)** application, version `2.0.2`. It is
+A **NestJS 12 + MikroORM 7 (PostgreSQL)** application, version `2.0.3`. It is
 three things in one process:
 
 1. the **REST API** under the `/api` prefix, published as OpenAPI;

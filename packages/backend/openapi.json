@@ -960,7 +960,7 @@
   "info": {
     "title": "Gravindex API",
     "description": "Índice gravinero — clips, episodes and tags of the gravina82 podcast",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "contact": {}
   },
   "tags": [],
@@ -987,7 +987,7 @@
           "version": {
             "type": "string",
             "description": "The backend package's version",
-            "example": "2.0.2"
+            "example": "2.0.3"
           },
           "time": {
             "type": "string",

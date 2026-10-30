@@ -100,36 +100,9 @@ services:
       # The first boot applies every migration before it answers anything.
       start_period: 60s
     stop_grace_period: 30s
-
-  # ────────────────────────────────────────────────────────────────────────────
-  # TLS, the public port and rate limiting. This is the CUSTOM Caddy build in
-  # `deploy/caddy/` — the stock image has no `rate_limit` — published under the
-  # same tag as the app so a release always pairs a Caddyfile with a binary that
-  # understands it.
-  #
-  # Caddy obtains and renews the certificate itself (HTTP-01 + TLS-ALPN), so
-  # there is no certbot timer and no certificate file on the host. The volume is
-  # what makes a restart reuse the certificate instead of asking Let's Encrypt
-  # for a new one.
-  # ────────────────────────────────────────────────────────────────────────────
-  caddy:
-    image: ghcr.io/dicren/gravindex-caddy:${IMAGE_TAG:?IMAGE_TAG is not set}
-    restart: unless-stopped
-    logging: *default-logging
-    depends_on:
-      gravindex-api:
-        condition: service_healthy
-    environment:
-      - PUBLIC_HOST=${PUBLIC_HOST:-indice.gravina82.com}
-    ports:
-      - '80:80'
-      - '443:443'
-      # HTTP/3. Harmless when a client does not use it.
-      - '443:443/udp'
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+    networks:
+      - default
+      - web
 
   # ────────────────────────────────────────────────────────────────────────────
   # One shot, behind the `seed` profile: loads the data-only dump at `./seed/`
@@ -168,3 +141,7 @@ volumes:
   db:
   caddy_data:
   caddy_config:
+
+networks:
+  web:
+    external: true
