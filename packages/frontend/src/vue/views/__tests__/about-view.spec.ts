@@ -46,11 +46,12 @@ function mountAbout() {
 beforeAll(stubBrowserApis);
 
 describe('the changelog', () => {
-  it('lists the eight released versions, newest first', () => {
+  it('lists the nine released versions, newest first', () => {
     const wrapper = mountAbout();
 
     const versions = wrapper.findAll('.about__changelog > li > strong').map((node) => node.text());
     expect(versions).toEqual([
+      '2.0.4',
       '2.0.3',
       '2.0.2',
       '2.0.1',
@@ -67,10 +68,11 @@ describe('the changelog', () => {
   it('keeps every entry verbatim, with its date', () => {
     const wrapper = mountAbout();
     const entries = wrapper.findAll('.about__changelog > li');
-    expect(entries).toHaveLength(8);
+    expect(entries).toHaveLength(9);
 
     const dated = entries.map((entry) => squish(entry.text()).split(' ').slice(0, 3).join(' '));
     expect(dated).toEqual([
+      '2.0.4 - 30/10/2026',
       '2.0.3 - 30/10/2026',
       '2.0.2 - 27/10/2026',
       '2.0.1 - 21/10/2026',
@@ -84,21 +86,22 @@ describe('the changelog', () => {
     const bulletsOf = (index: number): string[] =>
       entries[index]?.findAll('li').map((bullet) => squish(bullet.text())) ?? [];
 
-    expect(bulletsOf(0)).toEqual([
-      'La web comparte el proxy con buitrelista.es: un solo borde gestiona el certificado y los límites de peticiones de los dos sitios, sin cambios visibles en la web',
-    ]);
-    expect(bulletsOf(1)).toEqual([
+    // ⚠️ Releases that changed nothing a visitor can see say exactly this and
+    // nothing more: the page is public, and internal detail belongs in git.
+    expect(bulletsOf(0)).toEqual(['Cambios de infraestructura']);
+    expect(bulletsOf(1)).toEqual(['Cambios de infraestructura']);
+    expect(bulletsOf(2)).toEqual([
       'La cola sigue sonando con la pestaña en segundo plano o la pantalla apagada, y la pantalla de bloqueo muestra lo que suena con sus controles',
       'Si el audio se corta, se reintenta una vez desde donde estaba; si vuelve a fallar, la cola pasa al siguiente y avisa una sola vez',
       'Botón de corte anterior: vuelve al corte de antes o reinicia el que suena si llevas más de tres segundos',
       'Dos pestañas de la web comparten la cola y el sonido: la que empieza a sonar manda y la otra se calla',
     ]);
-    expect(bulletsOf(2)).toEqual([
+    expect(bulletsOf(3)).toEqual([
       'Límite de peticiones por IP para frenar abusos, con límites más estrictos en el acceso y en la descarga de audio',
       'Vigilancia externa que avisa si la web deja de responder, incluso si el servidor entero se cae',
       'Copia diaria de la base de datos por correo, además de la copia local',
     ]);
-    expect(bulletsOf(3)).toEqual([
+    expect(bulletsOf(4)).toEqual([
       'Rediseño completo de la web: nueva imagen, un único reproductor fijo al pie de la pantalla y listas infinitas en lugar de paginación',
       'Cola de reproducción: añade cortes y episodios enteros, reordénalos, quítalos y compártela con un enlace. Recuerda qué estabas escuchando y en qué segundo lo dejaste',
       'Momentos: marca al vuelo el segundo que suena y guárdalo para cortarlo más tarde',
@@ -109,10 +112,10 @@ describe('the changelog', () => {
       'La web se puede instalar como aplicación y se actualiza sola',
       'Eliminado el voto negativo: ahora solo se puede votar a favor',
     ]);
-    expect(bulletsOf(4)).toEqual([
+    expect(bulletsOf(5)).toEqual([
       'Arreglado fallo al cambiar de página después de limpiar el filtro de búsqueda en la biblioteca gravinera',
     ]);
-    expect(bulletsOf(5)).toEqual([
+    expect(bulletsOf(6)).toEqual([
       'Mejorado el buscador de episodios',
       'Optimizada la web',
       // ⚠️ `ruls`, not `urls`. The typo is the author's and stays.
@@ -123,8 +126,22 @@ describe('the changelog', () => {
       'Arreglados algunos pequeños errores',
       'Arreglados errores de diseño',
     ]);
-    expect(bulletsOf(6)).toEqual(['Mejorada la búsqueda']);
-    expect(bulletsOf(7)).toEqual(['Primera versión pública']);
+    expect(bulletsOf(7)).toEqual(['Mejorada la búsqueda']);
+    expect(bulletsOf(8)).toEqual(['Primera versión pública']);
+
+    wrapper.unmount();
+  });
+
+  it('keeps internal detail out of the public page', () => {
+    const wrapper = mountAbout();
+
+    // ⚠️ A release that only moved infrastructure says so in one generic line.
+    // The prose of this page is read by the podcast's audience, so the proxies,
+    // the backups and the servers stay in git — and a neighbouring project's
+    // name has no business here either.
+    const text = squish(wrapper.text());
+    expect(text).not.toContain('buitrelista');
+    expect(text).not.toContain('proxy');
 
     wrapper.unmount();
   });

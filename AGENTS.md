@@ -44,7 +44,7 @@ belongs to gravina82; the code is MIT.
 
 An **npm-workspaces monorepo** (`workspaces: ["packages/backend",
 "packages/frontend"]`), one root lockfile, one root `node_modules`. Both
-packages are at **`2.0.3`**.
+packages are at **`2.0.4`**.
 
 | Path | Stack | Role |
 |---|---|---|
@@ -384,7 +384,7 @@ Two layers, and the distinction matters when one goes red:
 
 | Layer | Command | What it is |
 |---|---|---|
-| **Unit** | `npm test` | **691** Jest tests (backend) + **1135** Vitest tests (frontend). ⚠️ Several backend suites need a **live Postgres**; each builds its own `gravindex_test_*` database and never touches `gravindex`. ⚠️ **No frontend unit test may reach the network** — jsdom serves from `http://localhost:3000`, which IS the dev backend, so `vitest.setup.ts` makes the default `fetch` throw. It is there because a spec once wrote 39 real rows |
+| **Unit** | `npm test` | **691** Jest tests (backend) + **1136** Vitest tests (frontend). ⚠️ Several backend suites need a **live Postgres**; each builds its own `gravindex_test_*` database and never touches `gravindex`. ⚠️ **No frontend unit test may reach the network** — jsdom serves from `http://localhost:3000`, which IS the dev backend, so `vitest.setup.ts` makes the default `fetch` throw. It is there because a spec once wrote 39 real rows |
 | **E2E** | `npm run test:e2e` | **130** Playwright tests over the real browser: debounce, infinite scroll, request cancellation, URL filters, the queue and its share links, playback, vote/tag, the editor, the slider, the injected meta tags, ingestion, mis momentos, the calendar, two tabs |
 
 ⚠️ **e2e needs a running candidate backend and a disposable database —
@@ -570,8 +570,15 @@ stopped being a 220 px slab with a white-backgrounded PNG on it; the art was
 re-exported with a real alpha channel and is a watermark now. ⚠️ The joke is
 unchanged, in all three places it appears.
 
-⚠️ **The `2.0.3` changelog entry lives in `AboutView.vue`**, written by hand, and
-the version is `2.0.3` in both `package.json`s and in `constants/version.ts`.
+⚠️ **The `2.0.4` changelog entry lives in `AboutView.vue`**, written by hand, and
+the version is `2.0.4` in both `package.json`s and in `constants/version.ts`.
+
+⚠️ **A release that changed nothing a visitor can see says exactly
+`Cambios de infraestructura` and nothing else.** The changelog is read by the
+podcast's audience: proxies, backups, rate limits, monitors and other systems
+are internal detail and belong in git, not on the page. That applies to the
+whole history — 2.0.3 and 2.0.4 were reduced to that one line, and the page
+names no other site or project.
 
 ## Deployment
 
@@ -585,8 +592,8 @@ Production is `prod.dicren.com` (`54.37.157.210`), public at
 **https://indice.gravina82.com**, running `docker-compose.prod.yml` for the app
 and the database and the edge stack for TLS.
 
-**A deploy is a tag.** Pushing `v2.0.3` runs the pipeline, which tests, builds
-and pushes `ghcr.io/dicren/gravindex:v2.0.3` (and, for history, the old Caddy
+**A deploy is a tag.** Pushing `v2.0.4` runs the pipeline, which tests, builds
+and pushes `ghcr.io/dicren/gravindex:v2.0.4` (and, for history, the old Caddy
 image), then SSHes into the server where the forced-command deploy script
 checks out that tag, writes it into `/opt/gravindex/.env`, pulls every image,
 restarts the stack, and waits for `/api/health` **and** for the public URL to
